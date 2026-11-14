@@ -374,7 +374,6 @@
                 }
             }
 
-            // التأكد من ظهور زر المشرف أثناء التنقل بالريموت
             const adminBtn = document.getElementById('adminBtn');
             if (adminBtn) {
                 adminBtn.classList.remove('opacity-0', 'pointer-events-none');
@@ -425,7 +424,6 @@
                 }
 
                 if (isValid) {
-                    // إعطاء أولوية للعناصر الواقعة في نفس المحور
                     const score = primaryDist + (secondaryDist * 2.5);
                     if (score < bestScore) {
                         bestScore = score;
@@ -439,7 +437,6 @@
 
         function initTVRemoteNavigation() {
             document.addEventListener('keydown', (e) => {
-                // إذا كانت الشاشة في وضع الفيديو فقط، أي ضغطة ريموت تعيد العرض فوراً
                 if (isShowingVideoOnly) {
                     toggleDisplayMode();
                 }
@@ -449,7 +446,6 @@
                     ? document.activeElement
                     : document.querySelector('.tv-focused');
 
-                // زر الرجوع في الريموت (Back / Escape / Backspace خارج حقول النص)
                 if (key === 'Escape' || key === 'GoBack' || (key === 'Backspace' && activeEl?.tagName !== 'INPUT')) {
                     if (!document.getElementById('pinModal').classList.contains('hidden')) {
                         e.preventDefault();
@@ -468,9 +464,7 @@
                     }
                 }
 
-                // أسهم الاتجاهات
                 if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(key)) {
-                    // السماح بالتنقل الطبيعي داخل القائمة المنسدلة (select) إذا كانت مفتوحة
                     if (activeEl && activeEl.tagName === 'SELECT' && (key === 'ArrowUp' || key === 'ArrowDown')) {
                         return;
                     }
@@ -490,7 +484,6 @@
                     }
                 }
 
-                // زر OK / Enter
                 if (key === 'Enter' || key === 'Select') {
                     if (!activeEl) return;
                     if (activeEl.id === 'pinInput') {
@@ -589,7 +582,6 @@
         let isShowingVideoOnly = false;
         function toggleDisplayMode() {
             clearTimeout(cycleTimeout);
-            // لا تخفِ الواجهة إذا كانت هناك نافذة مفتوحة
             const anyModalOpen = !document.getElementById('pinModal').classList.contains('hidden') ||
                                  !document.getElementById('remoteSelectionModal').classList.contains('hidden') ||
                                  !document.getElementById('adminModal').classList.contains('hidden');
@@ -710,7 +702,6 @@
 
                 clearTimeout(remoteTimer);
                 remoteTimer = setTimeout(() => {
-                    // لا تخفِ زر المشرف إذا كان التركيز حالياً عليه
                     if (document.activeElement === adminBtn || adminBtn.classList.contains('tv-focused')) return;
                     adminBtn.classList.remove('opacity-100', 'pointer-events-auto');
                     adminBtn.classList.add('opacity-0', 'pointer-events-none');
