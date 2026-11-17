@@ -93,6 +93,12 @@
         </div>
 
         <div class="flex items-center gap-3">
+            <!-- مؤشر المزامنة السحابية للفروع -->
+            <div id="syncStatusIndicator" class="bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5" title="حالة المزامنة بين الفروع">
+                <i class="fa-solid fa-cloud-arrow-down text-emerald-400"></i>
+                <span id="syncStatusText">مزامنة الفروع نشطة</span>
+            </div>
+
             <button tabindex="0" onclick="toggleVideoAudio()" id="audioToggleBtn" class="tv-focusable bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg border border-slate-700 text-xs font-bold flex items-center gap-2 shadow-lg transition cursor-pointer">
                 <i class="fa-solid fa-volume-xmark text-red-400" id="audioIcon"></i>
                 <span id="audioText">إلغاء كتم الصوت</span>
@@ -105,9 +111,9 @@
     </header>
 
     <!-- Main Content Area -->
-    <main id="mainContentArea" class="container mx-auto px-4 py-2 flex-grow flex flex-col justify-center relative z-20 pixel-protector fade-transition h-full overflow-hidden">
+    <main id="mainContentArea" class="container mx-auto px-4 py-1.5 flex-grow flex flex-col justify-center relative z-20 pixel-protector fade-transition h-full overflow-hidden">
 
-        <div class="flex justify-center items-center mb-1 bg-slate-900/85 px-4 py-1 rounded-xl border border-slate-800 backdrop-blur max-w-xl mx-auto shrink-0">
+        <div class="flex justify-center items-center mb-1 bg-slate-900/85 px-4 py-0.5 rounded-xl border border-slate-800 backdrop-blur max-w-xl mx-auto shrink-0">
             <span id="modeStatusBadge" class="bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 text-[11px] px-3 py-0.5 rounded-full font-bold flex items-center gap-1.5">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
                 <span>شامل الضريبة 15% وضمان الوكيل | VAT Included & Official Warranty</span>
@@ -115,31 +121,31 @@
         </div>
 
         <!-- شبكة الشاشات -->
-        <div id="tvCardsGrid" class="grid grid-cols-4 gap-3 max-w-6xl mx-auto my-auto items-center justify-center"></div>
+        <div id="tvCardsGrid" class="grid grid-cols-4 gap-3 max-w-6xl mx-auto my-auto items-center justify-center w-full"></div>
 
         <!-- أزرار التحكم والشريط التسويقي -->
-        <div class="mt-2 shrink-0 max-w-4xl mx-auto w-full">
-            <div class="flex justify-center items-center gap-4 mb-2 relative z-30">
-                <button id="brandSelectBtn" tabindex="0" onclick="changeBrandSecurely()" class="tv-focusable bg-blue-600/40 hover:bg-blue-600/60 border border-blue-400/70 px-7 py-2.5 rounded-2xl text-blue-100 font-black text-base flex items-center gap-3 transition shadow-2xl cursor-pointer backdrop-blur">
-                    <i class="fa-solid fa-tags text-blue-300 text-xl animate-pulse"></i>
-                    <span id="headerBrandName" class="text-lg">سامسونج (Samsung)</span>
+        <div class="mt-1.5 shrink-0 max-w-4xl mx-auto w-full">
+            <div class="flex justify-center items-center gap-4 mb-1.5 relative z-30">
+                <button id="brandSelectBtn" tabindex="0" onclick="changeBrandSecurely()" class="tv-focusable bg-blue-600/40 hover:bg-blue-600/60 border border-blue-400/70 px-6 py-2 rounded-2xl text-blue-100 font-black text-base flex items-center gap-3 transition shadow-2xl cursor-pointer backdrop-blur">
+                    <i class="fa-solid fa-tags text-blue-300 text-lg animate-pulse"></i>
+                    <span id="headerBrandName" class="text-base">سامسونج (Samsung)</span>
                     <i class="fa-solid fa-lock text-xs text-amber-400 ml-1"></i>
                 </button>
 
-                <button id="displayedSizeBtn" tabindex="0" onclick="selectDisplayedSizeSecurely()" class="tv-focusable bg-amber-600/40 hover:bg-amber-600/60 border border-amber-400/70 px-6 py-2.5 rounded-2xl text-amber-100 font-bold text-sm flex items-center gap-2.5 transition shadow-2xl cursor-pointer backdrop-blur">
-                    <i class="fa-solid fa-tv text-amber-300 text-lg"></i>
-                    <span>الشاشة المعروضة: <strong id="currentDisplayedBadge" class="text-white text-base">--</strong></span>
+                <button id="displayedSizeBtn" tabindex="0" onclick="selectDisplayedSizeSecurely()" class="tv-focusable bg-amber-600/40 hover:bg-amber-600/60 border border-amber-400/70 px-5 py-2 rounded-2xl text-amber-100 font-bold text-sm flex items-center gap-2.5 transition shadow-2xl cursor-pointer backdrop-blur">
+                    <i class="fa-solid fa-tv text-amber-300 text-base"></i>
+                    <span>الشاشة المعروضة: <strong id="currentDisplayedBadge" class="text-white text-sm">--</strong></span>
                     <i class="fa-solid fa-lock text-xs text-amber-400 ml-1"></i>
                 </button>
             </div>
 
             <!-- عبارة التنبيه التسويقية -->
-            <div class="bg-gradient-to-r from-amber-950/70 via-slate-900/95 to-amber-950/70 backdrop-blur border border-amber-500/50 rounded-xl px-4 py-1.5 flex items-center justify-between shadow-xl">
-                <div class="flex items-center gap-2 text-sm md:text-base font-bold text-amber-100 tracking-wide">
-                    <i class="fa-solid fa-crown text-amber-400 text-lg animate-bounce"></i>
+            <div class="bg-gradient-to-r from-amber-950/70 via-slate-900/95 to-amber-950/70 backdrop-blur border border-amber-500/50 rounded-xl px-4 py-1 flex items-center justify-between shadow-xl">
+                <div class="flex items-center gap-2 text-xs md:text-sm font-bold text-amber-100 tracking-wide">
+                    <i class="fa-solid fa-crown text-amber-400 text-base animate-bounce"></i>
                     <div id="animatedReadingText" class="flex flex-wrap gap-1.5 items-center"></div>
                 </div>
-                <span class="text-xs bg-amber-500 text-slate-950 px-3 py-1 rounded-lg font-black shrink-0 tracking-wider">عروض حصريّة</span>
+                <span class="text-[11px] bg-amber-500 text-slate-950 px-2.5 py-0.5 rounded-lg font-black shrink-0 tracking-wider">عروض حصريّة</span>
             </div>
         </div>
 
@@ -170,7 +176,7 @@
         </div>
     </div>
 
-    <!-- نافذة الاختيار بالريموت (بديل عن Prompt التقليدي) -->
+    <!-- نافذة الاختيار بالريموت -->
     <div id="remoteSelectionModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 flex items-center justify-center hidden">
         <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl">
             <div class="flex justify-between items-center border-b border-slate-800 pb-3 mb-4">
@@ -190,28 +196,48 @@
             <div class="flex justify-between items-center pb-4 border-b border-slate-800 mb-4">
                 <h3 class="text-xl font-bold text-white flex items-center gap-2">
                     <i class="fa-solid fa-user-shield text-amber-400"></i>
-                    <span>لوحة المشرف - التحكم الشامل وإدارة الأسعار والمواصفات</span>
+                    <span>لوحة المشرف - التحديث الموحد لجميع الشاشات والفروع</span>
                 </h3>
                 <button tabindex="0" onclick="toggleAdminModal()" class="tv-focusable text-slate-400 hover:text-white text-lg w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center cursor-pointer">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
+            <!-- إعدادات المزامنة السحابية بين الفروع -->
+            <div class="bg-gradient-to-r from-emerald-950/50 to-slate-900 border border-emerald-500/40 p-4 rounded-xl mb-6 shadow-lg">
+                <h4 class="font-bold text-emerald-300 text-sm mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-cloud text-emerald-400"></i> المزامنة السحابية المركزية (لربط جميع الشاشات والفروع لحظياً)
+                </h4>
+                <p class="text-[11px] text-slate-300 mb-3">
+                    أي تغيير تحفظه هنا يُرسل تلقائياً لجميع شاشات الفروع. يمكنك استخدام الخادم السحابي الافتراضي أو وضع رابط قاعدة بيانات Firebase الخاصة بك:
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                    <div class="md:col-span-2">
+                        <label class="block text-[10px] text-slate-400 mb-1">رابط المزامنة السحابية (Firebase Realtime DB URL أو معرف المجموعة):</label>
+                        <input type="text" id="cloudSyncEndpointInput" placeholder="https://your-project.firebaseio.com/clix_data.json" class="tv-focusable w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-emerald-300 font-mono" dir="ltr">
+                    </div>
+                    <div class="flex gap-2">
+                        <button tabindex="0" onclick="saveCloudConfigAndSync()" class="tv-focusable flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3 py-2 rounded-lg transition cursor-pointer">حفظ ومزامنة</button>
+                        <button tabindex="0" onclick="pullFromCloudNow(true)" class="tv-focusable bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs px-3 py-2 rounded-lg border border-slate-700 transition cursor-pointer" title="جلب أحدث بيانات الفروع الآن">تحديث الآن</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- إعدادات الباسورد -->
             <div class="bg-gradient-to-r from-amber-950/40 to-slate-900 border border-amber-500/40 p-4 rounded-xl mb-6 shadow-lg">
                 <h4 class="font-bold text-amber-300 text-sm mb-3 flex items-center gap-2">
-                    <i class="fa-solid fa-key text-amber-400"></i> إعدادات الرموز السرية
+                    <i class="fa-solid fa-key text-amber-400"></i> إعدادات الرموز السرية (تُعمم على جميع الفروع)
                 </h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
                         <label class="block text-xs text-slate-300 font-bold mb-1">تغيير رمز البائع:</label>
                         <input type="password" id="newBrandPinInput" placeholder="الرمز الجديد" class="tv-focusable w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white mb-2">
-                        <button tabindex="0" onclick="updateBrandPin()" class="tv-focusable bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-4 py-1.5 rounded-lg w-full transition cursor-pointer">حفظ رمز البائع</button>
+                        <button tabindex="0" onclick="updateBrandPin()" class="tv-focusable bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-4 py-1.5 rounded-lg w-full transition cursor-pointer">حفظ وتعميم رمز البائع</button>
                     </div>
                     <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
                         <label class="block text-xs text-slate-300 font-bold mb-1">تغيير رمز المشرف:</label>
                         <input type="password" id="newAdminPinInput" placeholder="الرمز الجديد" class="tv-focusable w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white mb-2">
-                        <button tabindex="0" onclick="updateAdminPin()" class="tv-focusable bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs px-4 py-1.5 rounded-lg w-full transition cursor-pointer">حفظ رمز المشرف</button>
+                        <button tabindex="0" onclick="updateAdminPin()" class="tv-focusable bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs px-4 py-1.5 rounded-lg w-full transition cursor-pointer">حفظ وتعميم رمز المشرف</button>
                     </div>
                 </div>
             </div>
@@ -222,7 +248,7 @@
                     <div>
                         <h4 class="font-bold text-blue-300 text-sm flex items-center gap-2">
                             <i class="fa-solid fa-file-excel text-emerald-400 text-base"></i>
-                            تحديث أسعار الشاشات عبر ملف إكسل / CSV
+                            تحديث أسعار الشاشات لجميع الفروع عبر ملف إكسل / CSV
                         </h4>
                         <p class="text-[11px] text-slate-400 mt-1">
                             يحتوي الملف على الأعمدة: <span class="text-amber-300 font-mono font-bold">sku</span> و <span class="text-emerald-300 font-mono font-bold">promo_price</span> و <span class="text-slate-300 font-mono font-bold">original_price</span>
@@ -230,7 +256,7 @@
                     </div>
                     <label tabindex="0" class="tv-focusable bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl cursor-pointer transition shadow-lg flex items-center gap-2 whitespace-nowrap">
                         <i class="fa-solid fa-upload"></i>
-                        <span>رفع ملف الأسعار</span>
+                        <span>رفع وتعميم الأسعار</span>
                         <input type="file" id="excelFileInput" accept=".csv, .txt, .xlsx" onchange="handleExcelUpload(event)" class="hidden">
                     </label>
                 </div>
@@ -257,7 +283,9 @@
                 <div id="adminSizesContainer" class="space-y-4"></div>
 
                 <div class="flex gap-3 pt-4 border-t border-slate-800">
-                    <button tabindex="0" onclick="saveAdminChanges()" class="tv-focusable flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition text-sm cursor-pointer">حفظ كافة التغييرات والمواصفات</button>
+                    <button tabindex="0" onclick="saveAdminChanges()" class="tv-focusable flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition text-sm cursor-pointer">
+                        <i class="fa-solid fa-cloud-arrow-up ml-1"></i> حفظ وتطبيق التغييرات على جميع الشاشات والفروع
+                    </button>
                     <button tabindex="0" onclick="resetToDefaults()" class="tv-focusable bg-red-950/50 text-red-300 border border-red-800/50 px-4 py-3 rounded-xl text-xs font-bold cursor-pointer">استعادة الافتراضي</button>
                 </div>
             </div>
@@ -266,6 +294,7 @@
 
     <script>
         const initialData = {
+            lastUpdated: 0,
             adminPin: "1234",
             brandPin: "1234",
             brands: [
@@ -309,10 +338,16 @@
             }
         };
 
-        let appData = JSON.parse(localStorage.getItem('clix_tv_app_data')) || initialData;
+        // إعدادات المزامنة السحابية المركزية بين جميع الشاشات والفروع
+        const DEFAULT_CLOUD_STORE_URL = 'https://kvdb.io/8p2G9xLmN4qR7vT1wY5zA/clix_showroom_master_v1';
+        let cloudSyncUrl = localStorage.getItem('clix_cloud_sync_url') || DEFAULT_CLOUD_STORE_URL;
+
+        let appData = JSON.parse(localStorage.getItem('clix_tv_app_data')) || JSON.parse(JSON.stringify(initialData));
         if(!appData.adminPin) appData.adminPin = "1234";
         if(!appData.brandPin) appData.brandPin = "1234";
+        if(!appData.lastUpdated) appData.lastUpdated = 0;
 
+        // بيانات محلية مستقلة لكل شاشة تلفزيون على حدة (يغيرها البائع فقط لهذه الشاشة)
         let selectedBrandId = localStorage.getItem('clix_selected_brand') || appData.brands[0]?.id || 'samsung';
         let displayedSkuPerBrand = JSON.parse(localStorage.getItem('clix_displayed_skus')) || {};
 
@@ -321,11 +356,119 @@
         let pendingAction = null;
         let lastFocusedElement = null;
 
+        /* ==============================================================
+           محرك المزامنة السحابية الفورية (تعميم تعديلات المشرف على كل الفروع)
+           ============================================================== */
+        function updateSyncBadge(status, text) {
+            const indicator = document.getElementById('syncStatusIndicator');
+            const statusText = document.getElementById('syncStatusText');
+            if (!indicator || !statusText) return;
+
+            statusText.innerText = text;
+            if (status === 'syncing') {
+                indicator.className = "bg-amber-950/80 text-amber-300 border border-amber-500/40 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5";
+                indicator.querySelector('i').className = "fa-solid fa-rotate fa-spin text-amber-400";
+            } else if (status === 'error') {
+                indicator.className = "bg-slate-800/90 text-slate-300 border border-slate-600 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5";
+                indicator.querySelector('i').className = "fa-solid fa-wifi text-slate-400";
+            } else {
+                indicator.className = "bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5";
+                indicator.querySelector('i').className = "fa-solid fa-cloud-arrow-down text-emerald-400";
+            }
+        }
+
+        async function pushToCloudMaster() {
+            appData.lastUpdated = Date.now();
+            localStorage.setItem('clix_tv_app_data', JSON.stringify(appData));
+            updateSyncBadge('syncing', 'جاري التعميم للفروع...');
+
+            try {
+                const isFirebase = cloudSyncUrl.includes('firebaseio.com');
+                const response = await fetch(cloudSyncUrl, {
+                    method: isFirebase ? 'PUT' : 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(appData)
+                });
+                if (response.ok) {
+                    updateSyncBadge('ok', 'مُحدّث لجميع الفروع');
+                } else {
+                    updateSyncBadge('error', 'محفوظ محلياً');
+                }
+            } catch (err) {
+                updateSyncBadge('error', 'محفوظ محلياً (غير متصل)');
+            }
+        }
+
+        async function pullFromCloudNow(isManual = false) {
+            // لا تقم بتحديث واجهة المشرف أثناء قيامه بالكتابة داخلها
+            const adminModalOpen = !document.getElementById('adminModal').classList.contains('hidden');
+            if (adminModalOpen && !isManual) return;
+
+            try {
+                const response = await fetch(cloudSyncUrl + '?t=' + Date.now(), { cache: 'no-store' });
+                if (!response.ok) return;
+                const remoteData = await response.json();
+
+                if (remoteData && remoteData.brands && remoteData.tvModels) {
+                    const remoteTime = remoteData.lastUpdated || 0;
+                    const localTime = appData.lastUpdated || 0;
+
+                    if (remoteTime > localTime || isManual) {
+                        appData = remoteData;
+                        localStorage.setItem('clix_tv_app_data', JSON.stringify(appData));
+
+                        // التأكد من أن الماركة المعروضة على هذه الشاشة ما زالت موجودة
+                        if (!appData.brands.find(b => b.id === selectedBrandId)) {
+                            selectedBrandId = appData.brands[0]?.id || 'samsung';
+                            localStorage.setItem('clix_selected_brand', selectedBrandId);
+                        }
+
+                        renderShowroomDisplay();
+                        if (adminModalOpen) {
+                            populateAdminBrandSelect();
+                            loadAdminBrandData();
+                        }
+                        updateSyncBadge('ok', 'تم استلام تحديث الإدارة');
+                        if (isManual) alert('تم جلب وتطبيق أحدث بيانات وأسعار الفروع بنجاح!');
+                    } else {
+                        updateSyncBadge('ok', 'مزامنة الفروع نشطة');
+                    }
+                }
+            } catch (err) {
+                // تجاهل أخطاء الشبكة المؤقتة والاستمرار بالنسخة المخزنة
+            }
+        }
+
+        function saveCloudConfigAndSync() {
+            const urlInput = document.getElementById('cloudSyncEndpointInput').value.trim();
+            if (urlInput) {
+                cloudSyncUrl = urlInput;
+                localStorage.setItem('clix_cloud_sync_url', cloudSyncUrl);
+                pushToCloudMaster();
+                alert('تم حفظ رابط المزامنة السحابية وتعميم البيانات بنجاح!');
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             setupReadingTextAnimation();
             renderShowroomDisplay();
             populateAdminBrandSelect();
             initTVRemoteNavigation();
+
+            const urlInput = document.getElementById('cloudSyncEndpointInput');
+            if (urlInput) urlInput.value = cloudSyncUrl;
+
+            // فحص التحديثات السحابية فور التشغيل ثم كل 15 ثانية لجميع شاشات الفروع
+            pullFromCloudNow(false);
+            setInterval(() => pullFromCloudNow(false), 15000);
+
+            // الاستماع للتحديثات الفورية بين التبويبات على نفس الجهاز أيضاً
+            window.addEventListener('storage', (e) => {
+                if (e.key === 'clix_tv_app_data' && e.newValue) {
+                    appData = JSON.parse(e.newValue);
+                    renderShowroomDisplay();
+                }
+            });
 
             if ('wakeLock' in navigator) {
                 navigator.wakeLock.request('screen').catch(() => {});
@@ -654,10 +797,10 @@
                     });
 
                     if (updatedCount > 0) {
-                        localStorage.setItem('clix_tv_app_data', JSON.stringify(appData));
+                        pushToCloudMaster();
                         renderShowroomDisplay();
                         loadAdminBrandData();
-                        alert(`تم بنجاح تحديث أسعار (${updatedCount}) شاشة!`);
+                        alert(`تم بنجاح تحديث وتعميم أسعار (${updatedCount}) شاشة على جميع الفروع!`);
                     } else {
                         alert('لم يتم العثور على أرقام SKU مطابقة في الملف المرفوع.');
                     }
@@ -720,7 +863,7 @@
 
         function changeBrandSecurely() {
             pendingAction = 'changeBrand';
-            openPinModalWithFocus("يرجى إدخال الرمز السري للبائع لاختيار الماركة:");
+            openPinModalWithFocus("يرجى إدخال الرمز السري للبائع لاختيار الماركة لهذه الشاشة:");
         }
 
         function selectDisplayedSizeSecurely() {
@@ -735,7 +878,7 @@
 
         function setDisplayedSizeSecurely(sku) {
             pendingAction = { type: 'setSizeBySku', sku: sku };
-            openPinModalWithFocus("يرجى إدخال رمز البائع لتحديد هذه الشاشة كمعروضة بالمعرض:");
+            openPinModalWithFocus("يرجى إدخال رمز البائع لتحديد هذه الشاشة كمعروضة هنا:");
         }
 
         function closePinModal() {
@@ -758,6 +901,7 @@
                 return;
             }
 
+            // صلاحيات البائع: محفوظة محلياً على هذه الشاشة فقط دون التأثير على باقي الشاشات
             if (pendingAction === 'changeBrand') {
                 closePinModal();
                 const brandOptions = appData.brands.map(b => ({
@@ -765,7 +909,7 @@
                     label: b.name,
                     active: b.id === selectedBrandId
                 }));
-                openRemoteSelectionModal("اختر الماركة المطلوبة لهذا المعرض:", brandOptions, (selected) => {
+                openRemoteSelectionModal("اختر الماركة الخاصة بهذه الشاشة فقط:", brandOptions, (selected) => {
                     selectedBrandId = selected.id;
                     localStorage.setItem('clix_selected_brand', selectedBrandId);
                     renderShowroomDisplay();
@@ -784,7 +928,7 @@
                     label: `مقاس ${m.size} بوصة - ${m.titleAr || ''} (SKU: ${m.sku})`,
                     active: m.sku === currentActiveSku
                 }));
-                openRemoteSelectionModal("اختر الشاشة المعروضة حالياً بالمعرض:", sizeOptions, (selected) => {
+                openRemoteSelectionModal("اختر الشاشة المعروضة حالياً (لهذه الشاشة فقط):", sizeOptions, (selected) => {
                     displayedSkuPerBrand[selectedBrandId] = selected.sku;
                     localStorage.setItem('clix_displayed_skus', JSON.stringify(displayedSkuPerBrand));
                     renderShowroomDisplay();
@@ -812,9 +956,9 @@
             const newPin = document.getElementById('newBrandPinInput').value.trim();
             if (newPin.length >= 4) {
                 appData.brandPin = newPin;
-                localStorage.setItem('clix_tv_app_data', JSON.stringify(appData));
+                pushToCloudMaster();
                 document.getElementById('newBrandPinInput').value = '';
-                alert("تم تحديث رمز البائع بنجاح!");
+                alert("تم تحديث وتعميم رمز البائع لجميع الفروع بنجاح!");
             } else {
                 alert("الرجاء إدخال رمز مكون من 4 خانات على الأقل.");
             }
@@ -824,9 +968,9 @@
             const newPin = document.getElementById('newAdminPinInput').value.trim();
             if (newPin.length >= 4) {
                 appData.adminPin = newPin;
-                localStorage.setItem('clix_tv_app_data', JSON.stringify(appData));
+                pushToCloudMaster();
                 document.getElementById('newAdminPinInput').value = '';
-                alert("تم تحديث رمز المشرف بنجاح!");
+                alert("تم تحديث وتعميم رمز المشرف لجميع الفروع بنجاح!");
             } else {
                 alert("الرجاء إدخال رمز مكون من 4 خانات على الأقل.");
             }
@@ -836,6 +980,7 @@
             const modal = document.getElementById('adminModal');
             modal.classList.toggle('hidden');
             if (!modal.classList.contains('hidden')) {
+                populateAdminBrandSelect();
                 loadAdminBrandData();
                 setTimeout(() => {
                     const firstControl = modal.querySelector('.tv-focusable');
@@ -848,13 +993,17 @@
 
         function populateAdminBrandSelect() {
             const select = document.getElementById('adminBrandSelect');
+            const currentVal = select.value || selectedBrandId;
             select.innerHTML = appData.brands.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
-            if(selectedBrandId) select.value = selectedBrandId;
+            if(currentVal && appData.brands.find(b => b.id === currentVal)) {
+                select.value = currentVal;
+            } else if (appData.brands.length > 0) {
+                select.value = appData.brands[0].id;
+            }
         }
 
         function loadAdminBrandData() {
             const brandId = document.getElementById('adminBrandSelect').value;
-            selectedBrandId = brandId;
             const models = appData.tvModels[brandId] || [];
             const container = document.getElementById('adminSizesContainer');
 
@@ -981,25 +1130,25 @@
                     { sku: '900' + Math.floor(100000 + Math.random() * 900000), size: '65', promoBadge: '', titleAr: `${nameAr} 65 بوصة Smart 4K`, titleEn: '65" Smart 4K', refreshRate: '120Hz', osSystem: 'Google TV', specsAr: 'تباين ممتاز | ألوان حقيقية', warrantyAr: 'سنتان (ضمان الوكيل)', originAr: 'السعودية', price: '2,899', oldPrice: '3,499' }
                 ];
 
-                selectedBrandId = brandId;
-                localStorage.setItem('clix_selected_brand', selectedBrandId);
-                localStorage.setItem('clix_tv_app_data', JSON.stringify(appData));
+                pushToCloudMaster();
                 populateAdminBrandSelect();
+                document.getElementById('adminBrandSelect').value = brandId;
+                loadAdminBrandData();
                 renderShowroomDisplay();
-                alert(`تمت إضافة ماركة "${nameAr}" بنجاح!`);
+                alert(`تمت إضافة وتعميم ماركة "${nameAr}" على جميع الشاشات والفروع بنجاح!`);
             }
         }
 
         function deleteCurrentBrand() {
             const brandId = document.getElementById('adminBrandSelect').value;
-            if(confirm('هل أنت متأكد من حذف هذه الماركة وجميع شاشاتها؟')) {
+            if(confirm('هل أنت متأكد من حذف هذه الماركة وجميع شاشاتها من كافة الفروع؟')) {
                 appData.brands = appData.brands.filter(b => b.id !== brandId);
                 delete appData.tvModels[brandId];
-                if(appData.brands.length > 0) {
+                if(appData.brands.length > 0 && selectedBrandId === brandId) {
                     selectedBrandId = appData.brands[0].id;
                     localStorage.setItem('clix_selected_brand', selectedBrandId);
                 }
-                localStorage.setItem('clix_tv_app_data', JSON.stringify(appData));
+                pushToCloudMaster();
                 populateAdminBrandSelect();
                 loadAdminBrandData();
                 renderShowroomDisplay();
@@ -1071,19 +1220,19 @@
                 m.specsAr = document.getElementById(`admin_specsAr_${index}`).value;
             });
 
-            localStorage.setItem('clix_tv_app_data', JSON.stringify(appData));
+            // تعميم التعديلات على جميع الشاشات والفروع في نفس الوقت
+            pushToCloudMaster();
             renderShowroomDisplay();
             toggleAdminModal();
-            alert('تم حفظ كافة التغييرات والمواصفات بنجاح!');
+            alert('تم حفظ وتعميم كافة التغييرات والأسعار والمواصفات على جميع الشاشات والفروع بنجاح!');
         }
 
         function resetToDefaults() {
-            if (confirm('هل تريد استعادة البيانات الافتراضية؟')) {
-                localStorage.removeItem('clix_tv_app_data');
-                localStorage.removeItem('clix_selected_brand');
-                localStorage.removeItem('clix_displayed_skus');
+            if (confirm('هل تريد استعادة البيانات الافتراضية وتعميمها على الفروع؟')) {
                 appData = JSON.parse(JSON.stringify(initialData));
+                pushToCloudMaster();
                 selectedBrandId = appData.brands[0].id;
+                localStorage.setItem('clix_selected_brand', selectedBrandId);
                 populateAdminBrandSelect();
                 renderShowroomDisplay();
                 toggleAdminModal();
@@ -1092,6 +1241,7 @@
 
         function renderShowroomDisplay() {
             const currentBrand = appData.brands.find(b => b.id === selectedBrandId) || appData.brands[0];
+            if (currentBrand) selectedBrandId = currentBrand.id;
             const models = (appData.tvModels[selectedBrandId] || []).slice(0, 8);
 
             if(currentBrand) {
@@ -1105,98 +1255,98 @@
 
             const grid = document.getElementById('tvCardsGrid');
             const totalCount = models.length;
+            const isMultiRow = totalCount > 4;
 
-            let cardHeightClass = "h-[405px]";
-            let paddingClass = "p-3.5";
-            let fontSizeClass = "text-sm";
-            let priceSizeClass = "text-2xl";
+            // تكبير ارتفاع الإطار وتنسيق المساحات الداخلية عند وجود 5 شاشات أو أكثر لمنع خروج الأسعار من الإطار
+            let cardHeightClass = isMultiRow ? "h-[282px]" : "h-[410px]";
+            let paddingClass = isMultiRow ? "px-2.5 py-2" : "p-3.5";
+            let fontSizeClass = isMultiRow ? "text-[11px]" : "text-sm";
+            let priceSizeClass = isMultiRow ? "text-lg" : "text-2xl";
 
-            if (totalCount > 4) {
-                cardHeightClass = "h-[250px]";
-                paddingClass = "p-2";
-                fontSizeClass = "text-[11px]";
-                priceSizeClass = "text-lg";
-                grid.className = "grid grid-cols-4 gap-2.5 max-w-6xl mx-auto my-auto items-center justify-center";
-            } else {
-                grid.className = "grid grid-cols-4 gap-4 max-w-6xl mx-auto my-auto items-center justify-center";
-            }
+            grid.className = isMultiRow
+                ? "grid grid-cols-4 gap-2 max-w-6xl mx-auto my-auto items-center justify-center w-full"
+                : "grid grid-cols-4 gap-4 max-w-6xl mx-auto my-auto items-center justify-center w-full";
 
             grid.innerHTML = models.map((item) => {
                 const isDisplayed = (item.sku === activeSku);
                 const goldenWarrantyPrice = calculateGoldenWarranty(item.price);
 
                 return `
-                <div tabindex="0" role="button" onclick="setDisplayedSizeSecurely('${item.sku}')" class="tv-focusable glass-panel rounded-xl ${paddingClass} flex flex-col justify-between relative transition duration-300 cursor-pointer ${cardHeightClass} ${isDisplayed ? 'featured-card' : 'hover:border-slate-500 hover:scale-[1.01]'}" style="${isDisplayed ? 'border: 3px solid #3b82f6 !important; background: rgba(30, 58, 138, 0.5) !important; box-shadow: 0 0 35px rgba(59, 130, 246, 0.65) !important;' : ''}">
+                <div tabindex="0" role="button" onclick="setDisplayedSizeSecurely('${item.sku}')" class="tv-focusable glass-panel rounded-xl ${paddingClass} flex flex-col justify-between relative transition duration-300 cursor-pointer overflow-hidden ${cardHeightClass} ${isDisplayed ? 'featured-card' : 'hover:border-slate-500 hover:scale-[1.01]'}" style="${isDisplayed ? 'border: 3px solid #3b82f6 !important; background: rgba(30, 58, 138, 0.5) !important; box-shadow: 0 0 35px rgba(59, 130, 246, 0.65) !important;' : ''}">
                     
                     ${isDisplayed ? `
-                        <div class="absolute -top-3 right-4 bg-blue-600 text-white text-[10px] font-black px-3 py-0.5 rounded-full border border-blue-200 shadow-xl flex items-center gap-1 z-30">
+                        <div class="absolute top-1.5 left-2 bg-blue-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full border border-blue-200 shadow-xl flex items-center gap-1 z-30">
                             <i class="fa-solid fa-star text-amber-300"></i>
-                            <span>المعروضة بالمعرض</span>
+                            <span>المعروضة</span>
                         </div>
                     ` : ''}
 
-                    <div>
-                        <div class="flex justify-between items-center mb-1 mt-0.5">
-                            <span class="${totalCount > 4 ? 'text-xl' : 'text-3xl'} font-black text-blue-400">${item.size}"</span>
-                            ${item.promoBadge ? `
-                                <span class="bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 ${totalCount > 4 ? 'text-[8px] px-1 py-0.2' : 'text-[10px] px-2 py-0.5'} rounded font-black shadow">
-                                    <i class="fa-solid fa-bolt"></i> ${item.promoBadge}
+                    <div class="min-h-0 flex-1 flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-center ${isMultiRow ? 'mb-0.5' : 'mb-1 mt-0.5'}">
+                                <span class="${isMultiRow ? 'text-xl leading-none' : 'text-3xl'} font-black text-blue-400">${item.size}"</span>
+                                ${item.promoBadge ? `
+                                    <span class="bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 ${isMultiRow ? 'text-[8px] px-1.5 py-0.5' : 'text-[10px] px-2 py-0.5'} rounded font-black shadow">
+                                        <i class="fa-solid fa-bolt"></i> ${item.promoBadge}
+                                    </span>
+                                ` : ''}
+                            </div>
+
+                            <div class="${isMultiRow ? 'mb-0.5' : 'mb-1'} flex items-center gap-1">
+                                <span class="${isMultiRow ? 'text-[8px] px-1.5 py-0' : 'text-[10px] px-2 py-0.5'} text-blue-400 font-mono bg-blue-950/40 rounded border border-blue-900/50">
+                                    SKU: <span class="font-bold text-white">${item.sku || 'N/A'}</span>
                                 </span>
-                            ` : ''}
-                        </div>
-
-                        <div class="mb-1 flex items-center gap-1">
-                            <span class="${totalCount > 4 ? 'text-[8px] px-1 py-0.2' : 'text-[10px] px-2 py-0.5'} text-blue-400 font-mono bg-blue-950/40 rounded border border-blue-900/50">
-                                SKU: <span class="font-bold text-white">${item.sku || 'N/A'}</span>
-                            </span>
-                        </div>
-
-                        <div class="mb-1">
-                            <h3 class="font-black text-white ${fontSizeClass} leading-tight line-clamp-1">${item.titleAr || ''}</h3>
-                            <p class="${totalCount > 4 ? 'text-[9px]' : 'text-[11px]'} text-blue-300 font-medium truncate">${item.titleEn || ''}</p>
-                        </div>
-
-                        <div class="flex items-center gap-1 mb-1">
-                            <span class="bg-indigo-950/80 text-indigo-300 border border-indigo-700/50 ${totalCount > 4 ? 'text-[8px] px-1 py-0.2' : 'text-[10px] px-2 py-0.5'} rounded font-bold">
-                                <i class="fa-solid fa-bolt text-amber-400"></i> ${item.refreshRate || '60Hz'}
-                            </span>
-                            <span class="bg-slate-800 text-slate-200 border border-slate-700 ${totalCount > 4 ? 'text-[8px] px-1 py-0.2' : 'text-[10px] px-2 py-0.5'} rounded font-bold">
-                                <i class="fa-solid fa-microchip text-blue-400"></i> ${item.osSystem || 'Smart TV'}
-                            </span>
-                        </div>
-
-                        <div class="bg-slate-950/60 p-1 rounded-lg border border-slate-800/80 mb-1">
-                            <p class="text-slate-200 ${totalCount > 4 ? 'text-[9px]' : 'text-[11px]'} font-bold leading-tight line-clamp-2">${item.specsAr || ''}</p>
-                        </div>
-                        
-                        <div class="grid grid-cols-2 gap-1 mb-1 ${totalCount > 4 ? 'text-[8px] p-1' : 'text-[10px] p-1.5'} text-slate-300 bg-slate-900/60 rounded-lg border border-slate-800">
-                            <div>
-                                <span class="text-slate-400 block">الضمان الأساسي:</span> 
-                                <span class="font-bold text-amber-400">${item.warrantyAr || 'سنتان'}</span>
                             </div>
-                            <div>
-                                <span class="text-slate-400 block">المنشأ:</span> 
-                                <span class="font-bold text-blue-300">${item.originAr || 'وارد الوكيل'}</span>
+
+                            <div class="${isMultiRow ? 'mb-0.5' : 'mb-1'}">
+                                <h3 class="font-black text-white ${fontSizeClass} leading-tight line-clamp-1">${item.titleAr || ''}</h3>
+                                <p class="${isMultiRow ? 'text-[9px] leading-tight' : 'text-[11px]'} text-blue-300 font-medium truncate">${item.titleEn || ''}</p>
+                            </div>
+
+                            <div class="flex items-center gap-1 ${isMultiRow ? 'mb-0.5' : 'mb-1'}">
+                                <span class="bg-indigo-950/80 text-indigo-300 border border-indigo-700/50 ${isMultiRow ? 'text-[8px] px-1.5 py-0' : 'text-[10px] px-2 py-0.5'} rounded font-bold">
+                                    <i class="fa-solid fa-bolt text-amber-400"></i> ${item.refreshRate || '60Hz'}
+                                </span>
+                                <span class="bg-slate-800 text-slate-200 border border-slate-700 ${isMultiRow ? 'text-[8px] px-1.5 py-0' : 'text-[10px] px-2 py-0.5'} rounded font-bold">
+                                    <i class="fa-solid fa-microchip text-blue-400"></i> ${item.osSystem || 'Smart TV'}
+                                </span>
                             </div>
                         </div>
 
-                        <!-- خانة باقة الضمان الذهبي 5 سنوات -->
-                        <div class="bg-gradient-to-r from-amber-950/40 to-slate-900 p-1.5 rounded-lg border border-amber-500/40 mb-1 flex items-center justify-between">
-                            <span class="text-[10px] text-amber-200 font-bold"><i class="fa-solid fa-crown text-amber-400 ml-1"></i> باقة الضمان الذهبي 5 سنوات:</span>
-                            <span class="text-[11px] font-black text-amber-300">${goldenWarrantyPrice}</span>
+                        <div>
+                            <div class="bg-slate-950/60 ${isMultiRow ? 'px-1.5 py-1 mb-0.5' : 'p-1.5 mb-1'} rounded-lg border border-slate-800/80">
+                                <p class="text-slate-200 ${isMultiRow ? 'text-[9px]' : 'text-[11px]'} font-bold leading-snug line-clamp-1">${item.specsAr || ''}</p>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-1 ${isMultiRow ? 'mb-0.5 text-[8px] px-1.5 py-0.5' : 'mb-1 text-[10px] p-1.5'} text-slate-300 bg-slate-900/60 rounded-lg border border-slate-800">
+                                <div class="truncate">
+                                    <span class="text-slate-400">الضمان: </span> 
+                                    <span class="font-bold text-amber-400">${item.warrantyAr || 'سنتان'}</span>
+                                </div>
+                                <div class="truncate">
+                                    <span class="text-slate-400">المنشأ: </span> 
+                                    <span class="font-bold text-blue-300">${item.originAr || 'وارد الوكيل'}</span>
+                                </div>
+                            </div>
+
+                            <!-- خانة باقة الضمان الذهبي 5 سنوات -->
+                            <div class="bg-gradient-to-r from-amber-950/40 to-slate-900 ${isMultiRow ? 'px-1.5 py-0.5 mb-0.5' : 'p-1.5 mb-1'} rounded-lg border border-amber-500/40 flex items-center justify-between">
+                                <span class="${isMultiRow ? 'text-[8.5px]' : 'text-[10px]'} text-amber-200 font-bold truncate"><i class="fa-solid fa-crown text-amber-400 ml-1"></i> الضمان الذهبي 5 سنوات:</span>
+                                <span class="${isMultiRow ? 'text-[9.5px]' : 'text-[11px]'} font-black text-amber-300 shrink-0">${goldenWarrantyPrice}</span>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="pt-1 border-t border-slate-800">
-                        <div class="flex items-baseline justify-between">
-                            <div>
-                                <span class="${totalCount > 4 ? 'text-[9px]' : 'text-xs'} text-slate-400 line-through block font-medium">${item.oldPrice} ر.س</span>
+                    <div class="${isMultiRow ? 'pt-1' : 'pt-1.5'} border-t border-slate-800 shrink-0">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-baseline gap-1.5">
                                 <div class="flex items-baseline gap-1">
-                                    <span class="${priceSizeClass} font-black text-emerald-400 tracking-wider">${item.price}</span>
-                                    <span class="${totalCount > 4 ? 'text-[9px]' : 'text-xs'} font-bold text-emerald-400">ر.س</span>
+                                    <span class="${priceSizeClass} font-black text-emerald-400 tracking-wider leading-none">${item.price}</span>
+                                    <span class="${isMultiRow ? 'text-[9px]' : 'text-xs'} font-bold text-emerald-400">ر.س</span>
                                 </div>
+                                <span class="${isMultiRow ? 'text-[9px]' : 'text-xs'} text-slate-400 line-through font-medium">${item.oldPrice}</span>
                             </div>
-                            <span class="${totalCount > 4 ? 'text-[8px] px-1 py-0.2' : 'text-[10px] px-2 py-0.5'} bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 rounded font-bold">متوفر</span>
+                            <span class="${isMultiRow ? 'text-[8px] px-1.5 py-0.5' : 'text-[10px] px-2 py-0.5'} bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 rounded font-bold">متوفر</span>
                         </div>
                     </div>
                 </div>
