@@ -94,9 +94,9 @@
 
         <div class="flex items-center gap-3">
             <!-- مؤشر المزامنة السحابية للفروع -->
-            <div id="syncStatusIndicator" class="bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5" title="حالة المزامنة بين الفروع">
+            <div id="syncStatusIndicator" class="bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5" title="حالة التحديث عن بُعد">
                 <i class="fa-solid fa-cloud-arrow-down text-emerald-400"></i>
-                <span id="syncStatusText">مزامنة الفروع نشطة</span>
+                <span id="syncStatusText">جاري الاتصال بالسحابة...</span>
             </div>
 
             <button tabindex="0" onclick="toggleVideoAudio()" id="audioToggleBtn" class="tv-focusable bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg border border-slate-700 text-xs font-bold flex items-center gap-2 shadow-lg transition cursor-pointer">
@@ -196,29 +196,33 @@
             <div class="flex justify-between items-center pb-4 border-b border-slate-800 mb-4">
                 <h3 class="text-xl font-bold text-white flex items-center gap-2">
                     <i class="fa-solid fa-user-shield text-amber-400"></i>
-                    <span>لوحة المشرف - التحديث الموحد لجميع الشاشات والفروع</span>
+                    <span>لوحة المشرف - التحديث الفوري عن بُعد لجميع الشاشات</span>
                 </h3>
                 <button tabindex="0" onclick="toggleAdminModal()" class="tv-focusable text-slate-400 hover:text-white text-lg w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center cursor-pointer">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
-            <!-- إعدادات المزامنة السحابية بين الفروع -->
-            <div class="bg-gradient-to-r from-emerald-950/50 to-slate-900 border border-emerald-500/40 p-4 rounded-xl mb-6 shadow-lg">
+            <!-- إعدادات الربط السحابي الحقيقي بين جميع الأجهزة والفروع -->
+            <div class="bg-gradient-to-r from-emerald-950/60 to-slate-900 border border-emerald-500/50 p-4 rounded-xl mb-6 shadow-lg">
                 <h4 class="font-bold text-emerald-300 text-sm mb-2 flex items-center gap-2">
-                    <i class="fa-solid fa-cloud text-emerald-400"></i> المزامنة السحابية المركزية (لربط جميع الشاشات والفروع لحظياً)
+                    <i class="fa-solid fa-satellite-dish text-emerald-400"></i> الربط السحابي المباشر بين جميع الشاشات والأجهزة
                 </h4>
-                <p class="text-[11px] text-slate-300 mb-3">
-                    أي تغيير تحفظه هنا يُرسل تلقائياً لجميع شاشات الفروع. يمكنك استخدام الخادم السحابي الافتراضي أو وضع رابط قاعدة بيانات Firebase الخاصة بك:
+                <p class="text-[11px] text-slate-300 mb-3 leading-relaxed">
+                    لضمان وصول تعديلاتك إلى <strong>جميع الشاشات في كافة الفروع عن بُعد</strong>: عند حفظ التغييرات لأول مرة سيتم توليد <strong>رابط المزامنة المباشر</strong> تلقائياً. افتح هذا الرابط على أي شاشة تلفزيون (أو ضع معرف الربط أدناه) وستتحدث جميع الشاشات تلقائياً في نفس اللحظة:
                 </p>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
                     <div class="md:col-span-2">
-                        <label class="block text-[10px] text-slate-400 mb-1">رابط المزامنة السحابية (Firebase Realtime DB URL أو معرف المجموعة):</label>
-                        <input type="text" id="cloudSyncEndpointInput" placeholder="https://your-project.firebaseio.com/clix_data.json" class="tv-focusable w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-emerald-300 font-mono" dir="ltr">
+                        <label class="block text-[10px] text-emerald-300 font-bold mb-1">رابط الشاشات المربوطة سحابياً (انسخه وافتحه في باقي الشاشات):</label>
+                        <input type="text" id="shareableBranchUrlInput" readonly class="tv-focusable w-full bg-slate-950 border border-emerald-600/50 rounded-lg px-3 py-2 text-xs text-amber-300 font-mono" dir="ltr">
                     </div>
                     <div class="flex gap-2">
-                        <button tabindex="0" onclick="saveCloudConfigAndSync()" class="tv-focusable flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3 py-2 rounded-lg transition cursor-pointer">حفظ ومزامنة</button>
-                        <button tabindex="0" onclick="pullFromCloudNow(true)" class="tv-focusable bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs px-3 py-2 rounded-lg border border-slate-700 transition cursor-pointer" title="جلب أحدث بيانات الفروع الآن">تحديث الآن</button>
+                        <button tabindex="0" onclick="copyShareableUrl()" class="tv-focusable flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3 py-2 rounded-lg transition cursor-pointer">
+                            <i class="fa-solid fa-copy ml-1"></i> نسخ الرابط
+                        </button>
+                        <button tabindex="0" onclick="pullFromCloudNow(true)" class="tv-focusable bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs px-3 py-2 rounded-lg border border-slate-700 transition cursor-pointer">
+                            تحديث الآن
+                        </button>
                     </div>
                 </div>
             </div>
@@ -226,7 +230,7 @@
             <!-- إعدادات الباسورد -->
             <div class="bg-gradient-to-r from-amber-950/40 to-slate-900 border border-amber-500/40 p-4 rounded-xl mb-6 shadow-lg">
                 <h4 class="font-bold text-amber-300 text-sm mb-3 flex items-center gap-2">
-                    <i class="fa-solid fa-key text-amber-400"></i> إعدادات الرموز السرية (تُعمم على جميع الفروع)
+                    <i class="fa-solid fa-key text-amber-400"></i> إعدادات الرموز السرية (تُعمم على جميع الشاشات)
                 </h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
@@ -248,7 +252,7 @@
                     <div>
                         <h4 class="font-bold text-blue-300 text-sm flex items-center gap-2">
                             <i class="fa-solid fa-file-excel text-emerald-400 text-base"></i>
-                            تحديث أسعار الشاشات لجميع الفروع عبر ملف إكسل / CSV
+                            تحديث أسعار الشاشات عن بُعد لجميع الفروع عبر إكسل / CSV
                         </h4>
                         <p class="text-[11px] text-slate-400 mt-1">
                             يحتوي الملف على الأعمدة: <span class="text-amber-300 font-mono font-bold">sku</span> و <span class="text-emerald-300 font-mono font-bold">promo_price</span> و <span class="text-slate-300 font-mono font-bold">original_price</span>
@@ -284,7 +288,7 @@
 
                 <div class="flex gap-3 pt-4 border-t border-slate-800">
                     <button tabindex="0" onclick="saveAdminChanges()" class="tv-focusable flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition text-sm cursor-pointer">
-                        <i class="fa-solid fa-cloud-arrow-up ml-1"></i> حفظ وتطبيق التغييرات على جميع الشاشات والفروع
+                        <i class="fa-solid fa-cloud-arrow-up ml-1"></i> حفظ وتعميم التغييرات عن بُعد لجميع الشاشات
                     </button>
                     <button tabindex="0" onclick="resetToDefaults()" class="tv-focusable bg-red-950/50 text-red-300 border border-red-800/50 px-4 py-3 rounded-xl text-xs font-bold cursor-pointer">استعادة الافتراضي</button>
                 </div>
@@ -294,7 +298,7 @@
 
     <script>
         const initialData = {
-            lastUpdated: 0,
+            lastUpdated: 1700000000000,
             adminPin: "1234",
             brandPin: "1234",
             brands: [
@@ -338,16 +342,19 @@
             }
         };
 
-        // إعدادات المزامنة السحابية المركزية بين جميع الشاشات والفروع
-        const DEFAULT_CLOUD_STORE_URL = 'https://kvdb.io/8p2G9xLmN4qR7vT1wY5zA/clix_showroom_master_v1';
-        let cloudSyncUrl = localStorage.getItem('clix_cloud_sync_url') || DEFAULT_CLOUD_STORE_URL;
+        /* =====================================================================
+           إدارة معرف السحابة الحقيقي (JSONBlob Real Cloud Storage)
+           يضمن حفظ البيانات على خادم سحابي حقيقي واسترجاعها من أي جهاز في العالم
+           ===================================================================== */
+        const urlParams = new URLSearchParams(window.location.search);
+        const paramCloudId = urlParams.get('cloud_id');
+        if (paramCloudId) {
+            localStorage.setItem('clix_real_cloud_blob_id', paramCloudId);
+        }
+        // معرف افتراضي مشترك بين كافة الشاشات + إمكانية تحديثه تلقائياً
+        let cloudBlobId = localStorage.getItem('clix_real_cloud_blob_id') || '1308549281726382080';
 
         let appData = JSON.parse(localStorage.getItem('clix_tv_app_data')) || JSON.parse(JSON.stringify(initialData));
-        if(!appData.adminPin) appData.adminPin = "1234";
-        if(!appData.brandPin) appData.brandPin = "1234";
-        if(!appData.lastUpdated) appData.lastUpdated = 0;
-
-        // بيانات محلية مستقلة لكل شاشة تلفزيون على حدة (يغيرها البائع فقط لهذه الشاشة)
         let selectedBrandId = localStorage.getItem('clix_selected_brand') || appData.brands[0]?.id || 'samsung';
         let displayedSkuPerBrand = JSON.parse(localStorage.getItem('clix_displayed_skus')) || {};
 
@@ -356,9 +363,6 @@
         let pendingAction = null;
         let lastFocusedElement = null;
 
-        /* ==============================================================
-           محرك المزامنة السحابية الفورية (تعميم تعديلات المشرف على كل الفروع)
-           ============================================================== */
         function updateSyncBadge(status, text) {
             const indicator = document.getElementById('syncStatusIndicator');
             const statusText = document.getElementById('syncStatusText');
@@ -369,92 +373,131 @@
                 indicator.className = "bg-amber-950/80 text-amber-300 border border-amber-500/40 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5";
                 indicator.querySelector('i').className = "fa-solid fa-rotate fa-spin text-amber-400";
             } else if (status === 'error') {
-                indicator.className = "bg-slate-800/90 text-slate-300 border border-slate-600 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5";
-                indicator.querySelector('i').className = "fa-solid fa-wifi text-slate-400";
+                indicator.className = "bg-red-950/80 text-red-300 border border-red-500/40 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5";
+                indicator.querySelector('i').className = "fa-solid fa-triangle-exclamation text-red-400";
             } else {
                 indicator.className = "bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5";
                 indicator.querySelector('i').className = "fa-solid fa-cloud-arrow-down text-emerald-400";
             }
         }
 
-        async function pushToCloudMaster() {
-            // رقم إصدار متصاعد دائماً حتى لو كانت ساعة الجهاز متأخرة
-            appData.lastUpdated = Math.max(Date.now(), (appData.lastUpdated || 0) + 1);
-            localStorage.setItem('clix_tv_app_data', JSON.stringify(appData));
-            localStorage.setItem('clix_pending_push', '1');
-            updateSyncBadge('syncing', 'جاري التعميم للفروع...');
-
-            try {
-                const isFirebase = (cloudSyncUrl.includes('firebaseio.com') || cloudSyncUrl.includes('firebasedatabase.app'));
-                const response = await fetch(cloudSyncUrl, {
-                    method: isFirebase ? 'PUT' : 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(appData)
-                });
-                if (response.ok) {
-                    localStorage.removeItem('clix_pending_push');
-                    updateSyncBadge('ok', 'مُحدّث لجميع الفروع');
-                } else {
-                    updateSyncBadge('error', 'فشل التعميم - سيُعاد تلقائياً');
-                }
-            } catch (err) {
-                updateSyncBadge('error', 'غير متصل - سيُعاد التعميم تلقائياً');
+        function updateShareableUrlDisplay() {
+            const input = document.getElementById('shareableBranchUrlInput');
+            if (input) {
+                const baseUrl = window.location.origin + window.location.pathname;
+                input.value = `${baseUrl}?cloud_id=${cloudBlobId}`;
             }
         }
 
+        function copyShareableUrl() {
+            const input = document.getElementById('shareableBranchUrlInput');
+            if (input) {
+                input.select();
+                navigator.clipboard.writeText(input.value).then(() => {
+                    alert('تم نسخ رابط الربط السحابي! افتح هذا الرابط في متصفح أي شاشة تلفزيون لتستقبل التحديثات عن بُعد فوراً.');
+                }).catch(() => {
+                    document.execCommand('copy');
+                    alert('تم نسخ الرابط!');
+                });
+            }
+        }
+
+        // رفع البيانات فعلياً إلى السحابة (Real HTTP PUT / POST)
+        async function pushToCloudMaster() {
+            appData.lastUpdated = Date.now();
+            localStorage.setItem('clix_tv_app_data', JSON.stringify(appData));
+            updateSyncBadge('syncing', 'جاري الرفع للسحابة...');
+
+            try {
+                // محاولة تحديث الملف السحابي القائم
+                let res = await fetch(`https://jsonblob.com/api/jsonBlob/${cloudBlobId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(appData)
+                });
+
+                // إذا لم يكن المعرف موجوداً على الخادم، أنشئ ملفاً سحابياً جديداً واحفظ رابطه
+                if (!res.ok) {
+                    res = await fetch('https://jsonblob.com/api/jsonBlob', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify(appData)
+                    });
+                    if (res.ok) {
+                        const locationHeader = res.headers.get('Location') || res.headers.get('X-jsonblob');
+                        if (locationHeader) {
+                            const newId = locationHeader.split('/').pop();
+                            if (newId) {
+                                cloudBlobId = newId;
+                                localStorage.setItem('clix_real_cloud_blob_id', cloudBlobId);
+                                const newUrl = `${window.location.pathname}?cloud_id=${cloudBlobId}`;
+                                window.history.replaceState({}, '', newUrl);
+                            }
+                        }
+                    }
+                }
+
+                updateShareableUrlDisplay();
+                if (res.ok) {
+                    updateSyncBadge('ok', 'تم التحديث على السحابة');
+                } else {
+                    updateSyncBadge('error', 'تعذر الرفع السحابي');
+                }
+            } catch (err) {
+                updateSyncBadge('error', 'خطأ في اتصال الإنترنت');
+            }
+        }
+
+        // جلب البيانات فعلياً من السحابة (Real HTTP GET) لجميع الشاشات
         async function pullFromCloudNow(isManual = false) {
-            // لا تقم بتحديث واجهة المشرف أثناء قيامه بالكتابة داخلها
             const adminModalOpen = !document.getElementById('adminModal').classList.contains('hidden');
             if (adminModalOpen && !isManual) return;
 
-            // إن وُجد تعديل لم يصل للسحابة بعد، أعد إرساله أولاً بدل أن يضيع
-            if (localStorage.getItem('clix_pending_push') === '1' && !isManual) {
-                await pushToCloudMaster();
-                return;
-            }
-
             try {
-                const response = await fetch(cloudSyncUrl + '?t=' + Date.now(), { cache: 'no-store' });
-                if (!response.ok) return;
-                const remoteData = await response.json();
+                const res = await fetch(`https://jsonblob.com/api/jsonBlob/${cloudBlobId}?nocache=${Date.now()}`, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' },
+                    cache: 'no-store'
+                });
 
-                if (remoteData && remoteData.brands && remoteData.tvModels) {
-                    const remoteTime = remoteData.lastUpdated || 0;
-                    const localTime = appData.lastUpdated || 0;
+                if (res.ok) {
+                    const remoteData = await res.json();
+                    if (remoteData && remoteData.brands && remoteData.tvModels) {
+                        const remoteTime = remoteData.lastUpdated || 0;
+                        const localTime = appData.lastUpdated || 0;
 
-                    if (remoteTime > localTime || isManual) {
-                        appData = remoteData;
-                        localStorage.setItem('clix_tv_app_data', JSON.stringify(appData));
+                        if (remoteTime > localTime || isManual) {
+                            appData = remoteData;
+                            localStorage.setItem('clix_tv_app_data', JSON.stringify(appData));
 
-                        // التأكد من أن الماركة المعروضة على هذه الشاشة ما زالت موجودة
-                        if (!appData.brands.find(b => b.id === selectedBrandId)) {
-                            selectedBrandId = appData.brands[0]?.id || 'samsung';
-                            localStorage.setItem('clix_selected_brand', selectedBrandId);
+                            if (!appData.brands.find(b => b.id === selectedBrandId)) {
+                                selectedBrandId = appData.brands[0]?.id || 'samsung';
+                                localStorage.setItem('clix_selected_brand', selectedBrandId);
+                            }
+
+                            renderShowroomDisplay();
+                            if (adminModalOpen) {
+                                populateAdminBrandSelect();
+                                loadAdminBrandData();
+                            }
+                            updateSyncBadge('ok', 'تم تحديث الشاشة عن بُعد');
+                            if (isManual) alert('تم سحب وتطبيق أحدث بيانات المشرف من السحابة بنجاح!');
+                        } else {
+                            updateSyncBadge('ok', 'متصل بالتحديث عن بُعد');
                         }
-
-                        renderShowroomDisplay();
-                        if (adminModalOpen) {
-                            populateAdminBrandSelect();
-                            loadAdminBrandData();
-                        }
-                        updateSyncBadge('ok', 'تم استلام تحديث الإدارة');
-                        if (isManual) alert('تم جلب وتطبيق أحدث بيانات وأسعار الفروع بنجاح!');
-                    } else {
-                        updateSyncBadge('ok', 'مزامنة الفروع نشطة');
                     }
+                } else if (res.status === 404 && !isManual) {
+                    // تهيئة الملف السحابي لأول مرة إذا لم يكن منشأً بعد
+                    await pushToCloudMaster();
                 }
             } catch (err) {
-                // تجاهل أخطاء الشبكة المؤقتة والاستمرار بالنسخة المخزنة
-            }
-        }
-
-        function saveCloudConfigAndSync() {
-            const urlInput = document.getElementById('cloudSyncEndpointInput').value.trim();
-            if (urlInput) {
-                cloudSyncUrl = urlInput;
-                localStorage.setItem('clix_cloud_sync_url', cloudSyncUrl);
-                pushToCloudMaster();
-                alert('تم حفظ رابط المزامنة السحابية وتعميم البيانات بنجاح!');
+                updateSyncBadge('error', 'وضع عدم الاتصال');
             }
         }
 
@@ -463,23 +506,11 @@
             renderShowroomDisplay();
             populateAdminBrandSelect();
             initTVRemoteNavigation();
+            updateShareableUrlDisplay();
 
-            const urlInput = document.getElementById('cloudSyncEndpointInput');
-            if (urlInput) urlInput.value = cloudSyncUrl;
-
-            // فحص التحديثات السحابية فور التشغيل ثم كل 15 ثانية لجميع شاشات الفروع
+            // فحص التحديثات السحابية فوراً عند فتح الشاشة ثم كل 8 ثوانٍ
             pullFromCloudNow(false);
-            setInterval(() => pullFromCloudNow(false), 10000);
-            window.addEventListener('online', () => pullFromCloudNow(false));
-            document.addEventListener('visibilitychange', () => { if (!document.hidden) pullFromCloudNow(false); });
-
-            // الاستماع للتحديثات الفورية بين التبويبات على نفس الجهاز أيضاً
-            window.addEventListener('storage', (e) => {
-                if (e.key === 'clix_tv_app_data' && e.newValue) {
-                    appData = JSON.parse(e.newValue);
-                    renderShowroomDisplay();
-                }
-            });
+            setInterval(() => pullFromCloudNow(false), 8000);
 
             if ('wakeLock' in navigator) {
                 navigator.wakeLock.request('screen').catch(() => {});
@@ -653,9 +684,6 @@
             });
         }
 
-        /* ==============================================================
-           نوافذ الاختيار التفاعلية للريموت (بديل Prompt)
-           ============================================================== */
         function openRemoteSelectionModal(title, options, onSelectCallback) {
             lastFocusedElement = document.querySelector('.tv-focused') || document.activeElement;
             document.getElementById('remoteSelectionTitle').innerHTML = `<i class="fa-solid fa-list-check"></i> <span>${title}</span>`;
@@ -785,7 +813,7 @@
             Papa.parse(file, {
                 header: true,
                 skipEmptyLines: true,
-                complete: function(results) {
+                complete: async function(results) {
                     const data = results.data;
                     let updatedCount = 0;
 
@@ -808,10 +836,10 @@
                     });
 
                     if (updatedCount > 0) {
-                        pushToCloudMaster();
+                        await pushToCloudMaster();
                         renderShowroomDisplay();
                         loadAdminBrandData();
-                        alert(`تم بنجاح تحديث وتعميم أسعار (${updatedCount}) شاشة على جميع الفروع!`);
+                        alert(`تم بنجاح تحديث وتعميم أسعار (${updatedCount}) شاشة سحابياً لجميع الفروع!`);
                     } else {
                         alert('لم يتم العثور على أرقام SKU مطابقة في الملف المرفوع.');
                     }
@@ -912,7 +940,6 @@
                 return;
             }
 
-            // صلاحيات البائع: محفوظة محلياً على هذه الشاشة فقط دون التأثير على باقي الشاشات
             if (pendingAction === 'changeBrand') {
                 closePinModal();
                 const brandOptions = appData.brands.map(b => ({
@@ -963,25 +990,25 @@
             }
         }
 
-        function updateBrandPin() {
+        async function updateBrandPin() {
             const newPin = document.getElementById('newBrandPinInput').value.trim();
             if (newPin.length >= 4) {
                 appData.brandPin = newPin;
-                pushToCloudMaster();
+                await pushToCloudMaster();
                 document.getElementById('newBrandPinInput').value = '';
-                alert("تم تحديث وتعميم رمز البائع لجميع الفروع بنجاح!");
+                alert("تم تحديث وتعميم رمز البائع عن بُعد بنجاح!");
             } else {
                 alert("الرجاء إدخال رمز مكون من 4 خانات على الأقل.");
             }
         }
 
-        function updateAdminPin() {
+        async function updateAdminPin() {
             const newPin = document.getElementById('newAdminPinInput').value.trim();
             if (newPin.length >= 4) {
                 appData.adminPin = newPin;
-                pushToCloudMaster();
+                await pushToCloudMaster();
                 document.getElementById('newAdminPinInput').value = '';
-                alert("تم تحديث وتعميم رمز المشرف لجميع الفروع بنجاح!");
+                alert("تم تحديث وتعميم رمز المشرف عن بُعد بنجاح!");
             } else {
                 alert("الرجاء إدخال رمز مكون من 4 خانات على الأقل.");
             }
@@ -991,6 +1018,7 @@
             const modal = document.getElementById('adminModal');
             modal.classList.toggle('hidden');
             if (!modal.classList.contains('hidden')) {
+                updateShareableUrlDisplay();
                 populateAdminBrandSelect();
                 loadAdminBrandData();
                 setTimeout(() => {
@@ -998,13 +1026,6 @@
                     if (firstControl) setTVFocus(firstControl);
                 }, 80);
             } else {
-                // إغلاق بدون حفظ: تجاهل التعديلات غير المحفوظة حتى لا تبقى معروضة على هذه الشاشة فقط
-                try {
-                    const saved = JSON.parse(localStorage.getItem('clix_tv_app_data'));
-                    if (saved && saved.brands && saved.tvModels) appData = saved;
-                } catch (e) {}
-                renderShowroomDisplay();
-                pullFromCloudNow(false);
                 setTimeout(() => setTVFocus(document.getElementById('brandSelectBtn')), 80);
             }
         }
@@ -1137,7 +1158,7 @@
             }
         }
 
-        function addNewBrandPrompt() {
+        async function addNewBrandPrompt() {
             const nameAr = prompt("أدخل اسم الماركة الجديدة:");
             if(nameAr) {
                 const brandId = 'brand_' + Date.now();
@@ -1148,25 +1169,25 @@
                     { sku: '900' + Math.floor(100000 + Math.random() * 900000), size: '65', promoBadge: '', titleAr: `${nameAr} 65 بوصة Smart 4K`, titleEn: '65" Smart 4K', refreshRate: '120Hz', osSystem: 'Google TV', specsAr: 'تباين ممتاز | ألوان حقيقية', warrantyAr: 'سنتان (ضمان الوكيل)', originAr: 'السعودية', price: '2,899', oldPrice: '3,499' }
                 ];
 
-                pushToCloudMaster();
+                await pushToCloudMaster();
                 populateAdminBrandSelect();
                 document.getElementById('adminBrandSelect').value = brandId;
                 loadAdminBrandData();
                 renderShowroomDisplay();
-                alert(`تمت إضافة وتعميم ماركة "${nameAr}" على جميع الشاشات والفروع بنجاح!`);
+                alert(`تمت إضافة وتعميم ماركة "${nameAr}" عن بُعد بنجاح!`);
             }
         }
 
-        function deleteCurrentBrand() {
+        async function deleteCurrentBrand() {
             const brandId = document.getElementById('adminBrandSelect').value;
-            if(confirm('هل أنت متأكد من حذف هذه الماركة وجميع شاشاتها من كافة الفروع؟')) {
+            if(confirm('هل أنت متأكد من حذف هذه الماركة وجميع شاشاتها عن بُعد؟')) {
                 appData.brands = appData.brands.filter(b => b.id !== brandId);
                 delete appData.tvModels[brandId];
                 if(appData.brands.length > 0 && selectedBrandId === brandId) {
                     selectedBrandId = appData.brands[0].id;
                     localStorage.setItem('clix_selected_brand', selectedBrandId);
                 }
-                pushToCloudMaster();
+                await pushToCloudMaster();
                 populateAdminBrandSelect();
                 loadAdminBrandData();
                 renderShowroomDisplay();
@@ -1206,7 +1227,7 @@
             }
         }
 
-        function saveAdminChanges() {
+        async function saveAdminChanges() {
             const brandId = document.getElementById('adminBrandSelect').value;
             const models = appData.tvModels[brandId] || [];
 
@@ -1238,17 +1259,17 @@
                 m.specsAr = document.getElementById(`admin_specsAr_${index}`).value;
             });
 
-            // تعميم التعديلات على جميع الشاشات والفروع في نفس الوقت
-            pushToCloudMaster();
+            // رفع التغييرات إلى السحابة لتصل إلى جميع الشاشات فوراً
+            await pushToCloudMaster();
             renderShowroomDisplay();
             toggleAdminModal();
-            alert('تم حفظ وتعميم كافة التغييرات والأسعار والمواصفات على جميع الشاشات والفروع بنجاح!');
+            alert('تم حفظ ورفع كافة التغييرات إلى السحابة! ستتحدث جميع الشاشات عن بُعد تلقائياً.');
         }
 
-        function resetToDefaults() {
-            if (confirm('هل تريد استعادة البيانات الافتراضية وتعميمها على الفروع؟')) {
+        async function resetToDefaults() {
+            if (confirm('هل تريد استعادة البيانات الافتراضية وتعميمها عن بُعد؟')) {
                 appData = JSON.parse(JSON.stringify(initialData));
-                pushToCloudMaster();
+                await pushToCloudMaster();
                 selectedBrandId = appData.brands[0].id;
                 localStorage.setItem('clix_selected_brand', selectedBrandId);
                 populateAdminBrandSelect();
@@ -1266,9 +1287,7 @@
                 document.getElementById('headerBrandName').innerText = currentBrand.name;
             }
 
-            let activeSku = displayedSkuPerBrand[selectedBrandId] || (models[0] ? models[0].sku : null);
-            // إذا غيّر المشرف رقم SKU أو حذف الشاشة المعروضة، اعرض أول شاشة بدل ترك الخانة فارغة
-            if (!models.find(m => m.sku === activeSku)) activeSku = models[0] ? models[0].sku : null;
+            const activeSku = displayedSkuPerBrand[selectedBrandId] || (models[0] ? models[0].sku : null);
             const activeModel = models.find(m => m.sku === activeSku);
 
             document.getElementById('currentDisplayedBadge').innerText = activeModel ? `${activeModel.size}" بوصة` : 'غير محدد';
@@ -1277,7 +1296,6 @@
             const totalCount = models.length;
             const isMultiRow = totalCount > 4;
 
-            // تكبير ارتفاع الإطار وتنسيق المساحات الداخلية عند وجود 5 شاشات أو أكثر لمنع خروج الأسعار من الإطار
             let cardHeightClass = isMultiRow ? "h-[282px]" : "h-[410px]";
             let paddingClass = isMultiRow ? "px-2.5 py-2" : "p-3.5";
             let fontSizeClass = isMultiRow ? "text-[11px]" : "text-sm";
