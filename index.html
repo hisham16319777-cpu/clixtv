@@ -246,24 +246,26 @@
                     <div>
                         <h4 class="font-bold text-blue-300 text-sm flex items-center gap-2">
                             <i class="fa-solid fa-file-excel text-emerald-400 text-base"></i>
-                            تحديث بيانات ومواصفات وأسعار الشاشات لجميع الشاشات عبر إكسل / CSV
+                            تحديث بيانات ومواصفات ومقاسات وأسعار الشاشات لجميع الشاشات عبر CSV (UTF-8)
                         </h4>
                         <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">
-                            العمود المطلوب: <span class="text-amber-300 font-mono font-bold">sku</span> • الأعمدة المدعومة:
+                            ملاحظة مهمة: احفظ ملف الإكسل بصيغة <span class="text-emerald-300 font-bold">CSV UTF-8</span> لضمان ظهور الحروف العربية بشكل سليم دون رموز.
+                            الأعمدة المدعومة: <span class="text-amber-300 font-mono font-bold">sku</span>،
+                            <span class="text-pink-300 font-mono font-bold">size / CSIZE</span> (المقاس)،
                             <span class="text-emerald-300 font-mono font-bold">promo_price</span>،
                             <span class="text-slate-300 font-mono font-bold">original_price</span>،
-                            <span class="text-cyan-300 font-mono font-bold">specsAr</span> (المواصفات)،
-                            <span class="text-white font-mono font-bold">titleAr</span> (الاسم عربي)،
-                            <span class="text-blue-300 font-mono font-bold">titleEn</span> (الموديل)،
-                            <span class="text-amber-200 font-mono font-bold">originAr</span> (بلد المنشأ)،
-                            <span class="text-indigo-300 font-mono font-bold">refreshRate</span> (التردد)،
-                            <span class="text-purple-300 font-mono font-bold">osSystem</span> (نظام التشغيل)
+                            <span class="text-cyan-300 font-mono font-bold">specsAr / specs</span>،
+                            <span class="text-white font-mono font-bold">titleAr</span>،
+                            <span class="text-blue-300 font-mono font-bold">titleEn / model</span>،
+                            <span class="text-amber-200 font-mono font-bold">originAr / origin</span>،
+                            <span class="text-indigo-300 font-mono font-bold">refreshRate / hz</span>،
+                            <span class="text-purple-300 font-mono font-bold">osSystem / os</span>
                         </p>
                     </div>
                     <label tabindex="0" class="tv-focusable bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl cursor-pointer transition shadow-lg flex items-center gap-2 whitespace-nowrap">
                         <i class="fa-solid fa-upload"></i>
                         <span>رفع وتحديث مباشر</span>
-                        <input type="file" id="excelFileInput" accept=".csv, .txt, .xlsx" onchange="handleExcelUpload(event)" class="hidden">
+                        <input type="file" id="excelFileInput" accept=".csv, .txt" onchange="handleExcelUpload(event)" class="hidden">
                     </label>
                 </div>
             </div>
@@ -1142,59 +1144,95 @@
             return '';
         }
 
+        function normalizeSizeValue(rawSize) {
+            const cleaned = (rawSize || '').toString().replace(/["'“”]/g, '').replace(/بوصة|inch/gi, '').trim();
+            if (/^0+\d+$/.test(cleaned)) {
+                return String(parseInt(cleaned, 10));
+            }
+            return cleaned;
+        }
+
+        function hasBrokenChars(str) {
+            return /\uFFFD|[ÃØÙÐ]/.test(str || '');
+        }
+
+        function processParsedCsvRows(data, inputEl) {
+            let updatedCount = 0;
+
+            data.forEach(row => {
+                const skuVal = pickRowValue(row, ['sku', 'SKU', 'رقم SKU']);
+                const sizeVal = normalizeSizeValue(pickRowValue(row, ['size', 'CSIZE', 'csize', 'المقاس', 'المقاس (بوصة)', 'inch']));
+                const promoPriceVal = pickRowValue(row, ['promo_price', 'price', 'Price', 'السعر المخفض', 'السعر', 'السعر الحالي']);
+                const originalPriceVal = pickRowValue(row, ['original_price', 'oldPrice', 'السعر الاصلي', 'السعر الأصلي', 'السعر السابق']);
+                const specsVal = pickRowValue(row, ['specsAr', 'specs', 'المواصفات', 'المواصفات التفصيلية']);
+                const titleArVal = pickRowValue(row, ['titleAr', 'title_ar', 'الاسم عربي', 'الاسم (عربي)', 'الاسم العربي']);
+                const titleEnVal = pickRowValue(row, ['titleEn', 'title_en', 'model', 'الموديل', 'الاسم (إنجليزي)', 'الاسم انجليزي']);
+                const originVal = pickRowValue(row, ['originAr', 'origin', 'بلد المنشأ', 'المنشأ']);
+                const refreshVal = pickRowValue(row, ['refreshRate', 'hz', 'التردد', 'التردد (Hz)', 'معدل التحديث']);
+                const osVal = pickRowValue(row, ['osSystem', 'os', 'نظام التشغيل', 'نظام التشغيل (OS)']);
+
+                if (skuVal) {
+                    Object.keys(appData.tvModels).forEach(brandKey => {
+                        appData.tvModels[brandKey].forEach(tv => {
+                            if (tv.sku && tv.sku.toString().trim() === skuVal) {
+                                if (sizeVal) tv.size = sizeVal;
+                                if (promoPriceVal) tv.price = promoPriceVal;
+                                if (originalPriceVal) tv.oldPrice = originalPriceVal;
+                                if (specsVal) tv.specsAr = specsVal;
+                                if (titleArVal) tv.titleAr = titleArVal;
+                                if (titleEnVal) tv.titleEn = titleEnVal;
+                                if (originVal) tv.originAr = originVal;
+                                if (refreshVal) tv.refreshRate = refreshVal;
+                                if (osVal) tv.osSystem = osVal;
+                                updatedCount++;
+                            }
+                        });
+                    });
+                }
+            });
+
+            if (updatedCount > 0) {
+                pushToCloudMaster();
+                renderShowroomDisplay();
+                loadAdminBrandData();
+                if (currentInspectedSku && !document.getElementById('specsFullscreenModal').classList.contains('hidden')) {
+                    renderSpecsFullscreenModal(currentInspectedSku);
+                }
+                alert(`تم بنجاح تحديث وتعميم بيانات (${updatedCount}) شاشة فوراً على جميع الشاشات!`);
+            } else {
+                alert('لم يتم العثور على أرقام SKU مطابقة في الملف المرفوع.');
+            }
+            if (inputEl) inputEl.value = '';
+        }
+
         function handleExcelUpload(event) {
-            const file = event.target.files[0];
+            const inputEl = event.target;
+            const file = inputEl.files[0];
             if (!file) return;
 
             Papa.parse(file, {
                 header: true,
                 skipEmptyLines: true,
+                encoding: 'UTF-8',
                 complete: function(results) {
-                    const data = results.data;
-                    let updatedCount = 0;
-
-                    data.forEach(row => {
-                        const skuVal = pickRowValue(row, ['sku', 'SKU', 'رقم SKU']);
-                        const promoPriceVal = pickRowValue(row, ['promo_price', 'price', 'Price', 'السعر المخفض', 'السعر', 'السعر الحالي']);
-                        const originalPriceVal = pickRowValue(row, ['original_price', 'oldPrice', 'السعر الاصلي', 'السعر الأصلي', 'السعر السابق']);
-                        const specsVal = pickRowValue(row, ['specsAr', 'specs', 'المواصفات', 'المواصفات التفصيلية']);
-                        const titleArVal = pickRowValue(row, ['titleAr', 'title_ar', 'الاسم عربي', 'الاسم (عربي)', 'الاسم العربي']);
-                        const titleEnVal = pickRowValue(row, ['titleEn', 'title_en', 'model', 'الموديل', 'الاسم (إنجليزي)', 'الاسم انجليزي']);
-                        const originVal = pickRowValue(row, ['originAr', 'origin', 'بلد المنشأ', 'المنشأ']);
-                        const refreshVal = pickRowValue(row, ['refreshRate', 'hz', 'التردد', 'التردد (Hz)', 'معدل التحديث']);
-                        const osVal = pickRowValue(row, ['osSystem', 'os', 'نظام التشغيل', 'نظام التشغيل (OS)']);
-
-                        if (skuVal) {
-                            Object.keys(appData.tvModels).forEach(brandKey => {
-                                appData.tvModels[brandKey].forEach(tv => {
-                                    if (tv.sku && tv.sku.toString().trim() === skuVal) {
-                                        if (promoPriceVal) tv.price = promoPriceVal;
-                                        if (originalPriceVal) tv.oldPrice = originalPriceVal;
-                                        if (specsVal) tv.specsAr = specsVal;
-                                        if (titleArVal) tv.titleAr = titleArVal;
-                                        if (titleEnVal) tv.titleEn = titleEnVal;
-                                        if (originVal) tv.originAr = originVal;
-                                        if (refreshVal) tv.refreshRate = refreshVal;
-                                        if (osVal) tv.osSystem = osVal;
-                                        updatedCount++;
-                                    }
-                                });
-                            });
-                        }
-                    });
-
-                    if (updatedCount > 0) {
-                        pushToCloudMaster();
-                        renderShowroomDisplay();
-                        loadAdminBrandData();
-                        if (currentInspectedSku && !document.getElementById('specsFullscreenModal').classList.contains('hidden')) {
-                            renderSpecsFullscreenModal(currentInspectedSku);
-                        }
-                        alert(`تم بنجاح تحديث وتعميم بيانات (${updatedCount}) شاشة فوراً على جميع الشاشات!`);
-                    } else {
-                        alert('لم يتم العثور على أرقام SKU مطابقة في الملف المرفوع.');
+                    const sampleText = JSON.stringify(results.data.slice(0, 5));
+                    if (hasBrokenChars(sampleText) && typeof TextDecoder !== 'undefined') {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            try {
+                                const decodedText = new TextDecoder('windows-1256').decode(e.target.result);
+                                const retryParsed = Papa.parse(decodedText, { header: true, skipEmptyLines: true });
+                                if (retryParsed.data && retryParsed.data.length > 0 && !hasBrokenChars(JSON.stringify(retryParsed.data.slice(0, 5)))) {
+                                    processParsedCsvRows(retryParsed.data, inputEl);
+                                    return;
+                                }
+                            } catch (err) {}
+                            processParsedCsvRows(results.data, inputEl);
+                        };
+                        reader.readAsArrayBuffer(file);
+                        return;
                     }
-                    event.target.value = '';
+                    processParsedCsvRows(results.data, inputEl);
                 }
             });
         }
