@@ -96,6 +96,11 @@
                 <span id="syncStatusText">جاري الاتصال...</span>
             </div>
 
+            <button tabindex="0" onclick="openSpecsFullscreenModal()" id="specsModalBtn" class="tv-focusable bg-indigo-600/40 hover:bg-indigo-600/60 text-indigo-100 px-3 py-1.5 rounded-lg border border-indigo-400/50 text-xs font-bold flex items-center gap-2 shadow-lg transition cursor-pointer">
+                <i class="fa-solid fa-expand text-indigo-300"></i>
+                <span>عرض المواصفات الكاملة</span>
+            </button>
+
             <button tabindex="0" onclick="toggleVideoAudio()" id="audioToggleBtn" class="tv-focusable bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg border border-slate-700 text-xs font-bold flex items-center gap-2 shadow-lg transition cursor-pointer">
                 <i class="fa-solid fa-volume-xmark text-red-400" id="audioIcon"></i>
                 <span id="audioText">إلغاء كتم الصوت</span>
@@ -159,6 +164,12 @@
             <span>لوحة المشرف</span>
         </button>
     </footer>
+
+    <!-- نافذة عرض المواصفات الكاملة المتوسطة والمضاعفة الحجم -->
+    <div id="specsFullscreenModal" class="fixed inset-0 bg-slate-950/92 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div id="specsFullscreenContent" class="w-[94vw] max-w-5xl bg-slate-900/98 border-2 border-blue-500/50 rounded-3xl p-6 md:p-8 shadow-[0_0_60px_rgba(37,99,235,0.45)] max-h-[92vh] overflow-y-auto flex flex-col justify-between gap-6">
+        </div>
+    </div>
 
     <!-- نافذة إدخال الرمز السري -->
     <div id="pinModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 flex items-center justify-center hidden">
@@ -325,10 +336,6 @@
             }
         };
 
-        // ===================== طبقة المزامنة السحابية الحقيقية =====================
-        // لتفعيل التحديث الفوري بين الشاشات (أجهزة مختلفة) ضع رابط قاعدة Firebase Realtime Database هنا،
-        // أو افتح الصفحة مرة واحدة على كل شاشة بالشكل:  ...index.html?db=https://اسم-مشروعك-default-rtdb.firebaseio.com
-        // وإن تُرك فارغاً يعمل التطبيق محلياً (تبويبات نفس المتصفح فقط) كما كان.
         const CLOUD_DB_URL = 'https://clix-9c9d0-default-rtdb.firebaseio.com';
         const CLOUD_DB_PATH = '/clix_showroom.json';
         const CLOUD_STORAGE_KEY = 'clix_direct_cloud_sync_master_db';
@@ -345,7 +352,6 @@
 
         function normalizeData(d) {
             if (!d || typeof d !== 'object') return null;
-            // Firebase يحوّل المصفوفات إلى كائنات ويحذف المصفوفات الفارغة، فنعيد البنية كما يتوقعها التطبيق
             d.brands = (Array.isArray(d.brands) ? d.brands : Object.values(d.brands || {})).filter(Boolean);
             const tv = (d.tvModels && typeof d.tvModels === 'object') ? d.tvModels : {};
             d.brands.forEach(b => {
@@ -363,6 +369,7 @@
 
         let selectedBrandId = localStorage.getItem('clix_selected_brand') || appData.brands[0]?.id || 'samsung';
         let displayedSkuPerBrand = JSON.parse(localStorage.getItem('clix_displayed_skus')) || {};
+        let currentInspectedSku = null;
 
         let remoteTimer = null;
         let cycleTimeout = null;
@@ -387,11 +394,9 @@
             }
         }
 
-        // ---- إرسال: يُحفظ محلياً ثم يُرفع للسحابة فوراً (مع إعادة المحاولة عند انقطاع الشبكة) ----
         let pushInFlight = false, pushPending = false, retryTimer = null;
 
         function pushToCloudMaster() {
-            // رقم تحديث متزايد دائماً حتى لو كانت ساعة الجهاز متأخرة
             appData.lastUpdated = Math.max(Date.now(), (appData.lastUpdated || 0) + 1);
             try { localStorage.setItem(CLOUD_STORAGE_KEY, JSON.stringify(appData)); } catch (e) {}
 
@@ -428,7 +433,6 @@
             }
         }
 
-        // ---- استقبال: تطبيق بيانات وصلت من شاشة/مشرف آخر على كل الشاشات فوراً ----
         function applyRemoteData(raw, force) {
             const parsed = normalizeData(raw);
             if (!parsed) return false;
@@ -444,13 +448,17 @@
             }
             renderShowroomDisplay();
 
+            const specsModal = document.getElementById('specsFullscreenModal');
+            if (specsModal && !specsModal.classList.contains('hidden')) {
+                renderSpecsFullscreenModal(currentInspectedSku);
+            }
+
             const adminModal = document.getElementById('adminModal');
             if (adminModal && !adminModal.classList.contains('hidden')) {
                 populateAdminBrandSelect();
                 const typingNow = adminModal.contains(document.activeElement) &&
                     /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName) &&
                     document.activeElement.id !== 'adminBrandSelect';
-                // لا نعيد بناء نموذج المشرف أثناء كتابته حتى لا يضيع ما يكتبه
                 if (!typingNow && !liveTimer) loadAdminBrandData();
             }
             updateSyncBadge('ok', 'تم التحديث المباشر');
@@ -460,11 +468,9 @@
         let firstCloudSyncDone = false;
         function handleCloudSnapshot(data) {
             if (data === null || data === undefined) {
-                // قاعدة البيانات السحابية فارغة: نزرع بيانات هذا الجهاز كأول نسخة
                 if (!firstCloudSyncDone) { firstCloudSyncDone = true; pushToCloudMaster(); }
                 return;
             }
-            // أول اتصال: السحابة هي المرجع حتى لو كان كاش الجهاز أحدث بالخطأ
             applyRemoteData(data, !firstCloudSyncDone);
             firstCloudSyncDone = true;
         }
@@ -485,7 +491,6 @@
             }
         }
 
-        // بث مباشر (Server-Sent Events): أي تعديل يصل لكل الشاشات خلال لحظات دون انتظار
         let cloudStream = null, streamAlive = false;
         function startCloudStream() {
             if (!getCloudUrl() || typeof EventSource === 'undefined') return;
@@ -503,7 +508,6 @@
                 cloudStream.addEventListener('patch', () => pullFromCloudNow());
                 cloudStream.onerror = () => {
                     streamAlive = false;
-                    // بعض المتصفحات لا تعيد الاتصال تلقائياً بعد إغلاق الخادم للقناة
                     if (cloudStream && cloudStream.readyState === 2) setTimeout(startCloudStream, 5000);
                 };
             } catch (e) { streamAlive = false; }
@@ -514,7 +518,6 @@
                 updateSyncBadge('syncing', 'جاري الاتصال بالسحابة...');
                 pullFromCloudNow();
                 startCloudStream();
-                // شبكة أمان: استعلام دوري فقط إذا لم يكن البث المباشر شغّالاً (لتوفير استهلاك الإنترنت)
                 setInterval(() => { if (!streamAlive) pullFromCloudNow(); }, 15000);
                 window.addEventListener('online', () => { pullFromCloudNow(); startCloudStream(); });
                 document.addEventListener('visibilitychange', () => { if (!document.hidden) pullFromCloudNow(); });
@@ -528,7 +531,6 @@
             initAdminLiveEditing();
         }
 
-        // ---- تعديلات المشرف تُطبَّق على كل الشاشات فور الكتابة/الاختيار ----
         let liveTimer = null;
         function flushLiveEdit() {
             if (!liveTimer) return;
@@ -549,7 +551,6 @@
             };
             modal.addEventListener('input', schedule);
             modal.addEventListener('change', schedule);
-            // قبل تبديل الماركة داخل لوحة المشرف نحفظ أي تعديل معلّق على الماركة القديمة
             modal.addEventListener('change', (e) => {
                 if (e.target && e.target.id === 'adminBrandSelect') {
                     if (liveTimer) flushLiveEdit();
@@ -606,7 +607,7 @@
         }
 
         function getVisibleFocusableElements() {
-            const modals = ['pinModal', 'remoteSelectionModal', 'adminModal'];
+            const modals = ['specsFullscreenModal', 'pinModal', 'remoteSelectionModal', 'adminModal'];
             for (const modalId of modals) {
                 const modal = document.getElementById(modalId);
                 if (modal && !modal.classList.contains('hidden')) {
@@ -687,6 +688,11 @@
                     : document.querySelector('.tv-focused');
 
                 if (key === 'Escape' || key === 'GoBack' || (key === 'Backspace' && activeEl?.tagName !== 'INPUT')) {
+                    if (!document.getElementById('specsFullscreenModal').classList.contains('hidden')) {
+                        e.preventDefault();
+                        closeSpecsFullscreenModal();
+                        return;
+                    }
                     if (!document.getElementById('pinModal').classList.contains('hidden')) {
                         e.preventDefault();
                         closePinModal();
@@ -737,6 +743,148 @@
                     }
                 }
             });
+        }
+
+        function openSpecsFullscreenModal(targetSku = null) {
+            const currentBrand = appData.brands.find(b => b.id === selectedBrandId) || appData.brands[0];
+            const models = appData.tvModels[selectedBrandId] || [];
+            if (models.length === 0) {
+                alert('لا توجد مواصفات متاحة لهذه الماركة حالياً.');
+                return;
+            }
+
+            const defaultSku = targetSku || displayedSkuPerBrand[selectedBrandId] || models[0].sku;
+            const tv = models.find(m => m.sku === defaultSku) || models[0];
+            currentInspectedSku = tv.sku;
+            lastFocusedElement = document.querySelector('.tv-focused') || document.activeElement;
+
+            renderSpecsFullscreenModal(tv.sku, currentBrand);
+
+            const modal = document.getElementById('specsFullscreenModal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                const closeBtn = modal.querySelector('button');
+                if (closeBtn) setTVFocus(closeBtn);
+            }, 80);
+        }
+
+        function renderSpecsFullscreenModal(targetSku, brandObj = null) {
+            const currentBrand = brandObj || appData.brands.find(b => b.id === selectedBrandId) || appData.brands[0] || { name: '' };
+            const models = appData.tvModels[selectedBrandId] || [];
+            const tv = models.find(m => m.sku === targetSku) || models[0];
+            if (!tv) return;
+
+            currentInspectedSku = tv.sku;
+            const goldenWarrantyPrice = calculateGoldenWarranty(tv.price);
+            const isDisplayedHere = (displayedSkuPerBrand[selectedBrandId] || models[0]?.sku) === tv.sku;
+
+            const specsList = (tv.specsAr || '')
+                .split('|')
+                .map(s => s.trim())
+                .filter(Boolean);
+
+            const contentEl = document.getElementById('specsFullscreenContent');
+            contentEl.innerHTML = `
+                <!-- رأس النافذة الكاملة -->
+                <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-5">
+                    <div class="flex items-center gap-4">
+                        <div class="bg-blue-600/20 border border-blue-400/40 rounded-2xl px-5 py-3 text-center">
+                            <div class="text-4xl md:text-5xl font-black text-blue-400 leading-none">${tv.size || '--'}"</div>
+                            <div class="text-xs text-blue-200 font-bold mt-1">بوصة</div>
+                        </div>
+                        <div>
+                            <div class="flex flex-wrap items-center gap-2 mb-1">
+                                <span class="text-xs md:text-sm font-black bg-blue-950 text-blue-300 border border-blue-700/60 px-3 py-1 rounded-full">${currentBrand.name}</span>
+                                <span class="text-xs md:text-sm font-mono font-bold bg-slate-800 text-amber-300 border border-slate-700 px-3 py-1 rounded-full">SKU: ${tv.sku || 'N/A'}</span>
+                                ${tv.promoBadge ? `<span class="text-xs md:text-sm font-black bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 px-3 py-1 rounded-full"><i class="fa-solid fa-bolt"></i> ${tv.promoBadge}</span>` : ''}
+                                ${isDisplayedHere ? `<span class="text-xs md:text-sm font-black bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 px-3 py-1 rounded-full"><i class="fa-solid fa-star text-amber-300"></i> الشاشة المعروضة حالياً</span>` : ''}
+                            </div>
+                            <h2 class="text-2xl md:text-4xl font-black text-white leading-tight">${tv.titleAr || ''}</h2>
+                            <p class="text-base md:text-xl text-blue-300 font-bold mt-0.5" dir="ltr">${tv.titleEn || ''}</p>
+                        </div>
+                    </div>
+
+                    <button tabindex="0" onclick="closeSpecsFullscreenModal()" class="tv-focusable bg-red-600/20 hover:bg-red-600/40 text-red-200 border border-red-500/50 px-5 py-3 rounded-2xl text-sm md:text-base font-black flex items-center gap-2 cursor-pointer transition">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                        <span>إغلاق النافذة</span>
+                    </button>
+                </div>
+
+                <!-- شبكة المواصفات الكاملة -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4">
+                        <div class="text-xs text-slate-400 font-bold mb-1">الموديل</div>
+                        <div class="text-lg md:text-xl font-black text-blue-300 break-words" dir="ltr">${tv.titleEn || '--'}</div>
+                    </div>
+                    <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4">
+                        <div class="text-xs text-slate-400 font-bold mb-1">معدل التحديث (Hz)</div>
+                        <div class="text-lg md:text-xl font-black text-indigo-300"><i class="fa-solid fa-bolt text-amber-400 ml-1"></i>${tv.refreshRate || '60Hz'}</div>
+                    </div>
+                    <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4">
+                        <div class="text-xs text-slate-400 font-bold mb-1">نظام التشغيل (OS)</div>
+                        <div class="text-lg md:text-xl font-black text-white"><i class="fa-solid fa-microchip text-blue-400 ml-1"></i>${tv.osSystem || 'Smart TV'}</div>
+                    </div>
+                    <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4">
+                        <div class="text-xs text-slate-400 font-bold mb-1">بلد المنشأ</div>
+                        <div class="text-lg md:text-xl font-black text-cyan-300">${tv.originAr || 'وارد الوكيل'}</div>
+                    </div>
+                </div>
+
+                <!-- قسم المواصفات التفصيلية الكاملة بدون اقتصاص -->
+                <div class="bg-slate-950/90 border border-slate-800 rounded-2xl p-5 md:p-6">
+                    <h3 class="text-base md:text-lg font-black text-amber-300 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-list-check"></i>
+                        <span>جميع المواصفات والمزايا التفصيلية</span>
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        ${(specsList.length > 0 ? specsList : [tv.specsAr || 'لا توجد مواصفات إضافية مسجلة']).map(spec => `
+                            <div class="bg-slate-900/90 border border-slate-800 rounded-xl px-4 py-3 text-sm md:text-lg font-bold text-slate-100 flex items-center gap-2.5">
+                                <i class="fa-solid fa-circle-check text-emerald-400 shrink-0"></i>
+                                <span>${spec}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <!-- الضمان والضمان الذهبي والأسعار -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
+                    <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 flex flex-col justify-center">
+                        <div class="text-xs text-slate-400 font-bold mb-1">الضمان الرسمي</div>
+                        <div class="text-lg md:text-2xl font-black text-amber-400">${tv.warrantyAr || 'سنتان (ضمان الوكيل)'}</div>
+                    </div>
+
+                    <div class="bg-gradient-to-r from-amber-950/60 to-slate-900 border border-amber-500/50 rounded-2xl p-4 flex items-center justify-between gap-3">
+                        <div>
+                            <div class="text-sm md:text-base font-black text-amber-200 flex items-center gap-2">
+                                <i class="fa-solid fa-crown text-amber-400 text-lg"></i>
+                                <span>الضمان الذهبي 5 سنوات</span>
+                            </div>
+                            <div class="text-xs text-amber-100/80 mt-0.5">حماية ممتدة من إكسترا</div>
+                        </div>
+                        <div class="text-xl md:text-2xl font-black text-amber-300 whitespace-nowrap">${goldenWarrantyPrice}</div>
+                    </div>
+
+                    <div class="bg-emerald-950/40 border border-emerald-500/40 rounded-2xl p-4 flex items-center justify-between gap-3">
+                        <div>
+                            <div class="text-xs text-emerald-300 font-bold mb-1">السعر شامل الضريبة 15%</div>
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-3xl md:text-4xl font-black text-emerald-400">${tv.price}</span>
+                                <span class="text-sm font-bold text-emerald-300">ر.س</span>
+                                ${tv.oldPrice ? `<span class="text-sm md:text-base text-slate-400 line-through">${tv.oldPrice}</span>` : ''}
+                            </div>
+                        </div>
+                        <span class="text-xs md:text-sm bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-3 py-1.5 rounded-xl font-black shrink-0">متوفر</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function closeSpecsFullscreenModal() {
+            document.getElementById('specsFullscreenModal').classList.add('hidden');
+            currentInspectedSku = null;
+            if (lastFocusedElement) {
+                setTimeout(() => setTVFocus(lastFocusedElement), 50);
+            }
         }
 
         function openRemoteSelectionModal(title, options, onSelectCallback) {
@@ -819,7 +967,8 @@
         let isShowingVideoOnly = false;
         function toggleDisplayMode() {
             clearTimeout(cycleTimeout);
-            const anyModalOpen = !document.getElementById('pinModal').classList.contains('hidden') ||
+            const anyModalOpen = !document.getElementById('specsFullscreenModal').classList.contains('hidden') ||
+                                 !document.getElementById('pinModal').classList.contains('hidden') ||
                                  !document.getElementById('remoteSelectionModal').classList.contains('hidden') ||
                                  !document.getElementById('adminModal').classList.contains('hidden');
             if (anyModalOpen) {
@@ -1165,7 +1314,7 @@
                             <input type="text" id="admin_titleAr_${index}" value="${m.titleAr || ''}" class="tv-focusable w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white font-bold">
                         </div>
                         <div>
-                            <label class="block text-[10px] text-slate-400 mb-1">الاسم (إنجليزي):</label>
+                            <label class="block text-[10px] text-slate-400 mb-1">الموديل:</label>
                             <input type="text" id="admin_titleEn_${index}" value="${m.titleEn || ''}" class="tv-focusable w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-blue-300">
                         </div>
                     </div>
@@ -1328,7 +1477,6 @@
         function saveAdminChanges() {
             clearTimeout(liveTimer); liveTimer = null;
             collectAdminFields();
-            // تعميم التعديلات فوراً على جميع الشاشات
             pushToCloudMaster();
             renderShowroomDisplay();
             toggleAdminModal();
@@ -1380,7 +1528,7 @@
                 const goldenWarrantyPrice = calculateGoldenWarranty(item.price);
 
                 return `
-                <div tabindex="0" role="button" onclick="setDisplayedSizeSecurely('${item.sku}')" class="tv-focusable glass-panel rounded-xl ${paddingClass} flex flex-col justify-between relative transition duration-300 cursor-pointer overflow-hidden ${cardHeightClass} ${isDisplayed ? 'featured-card' : 'hover:border-slate-500 hover:scale-[1.01]'}" style="${isDisplayed ? 'border: 3px solid #3b82f6 !important; background: rgba(30, 58, 138, 0.5) !important; box-shadow: 0 0 35px rgba(59, 130, 246, 0.65) !important;' : ''}">
+                <div tabindex="0" role="button" onclick="openSpecsFullscreenModal('${item.sku}')" class="tv-focusable glass-panel rounded-xl ${paddingClass} flex flex-col justify-between relative transition duration-300 cursor-pointer overflow-hidden ${cardHeightClass} ${isDisplayed ? 'featured-card' : 'hover:border-slate-500 hover:scale-[1.01]'}" style="${isDisplayed ? 'border: 3px solid #3b82f6 !important; background: rgba(30, 58, 138, 0.5) !important; box-shadow: 0 0 35px rgba(59, 130, 246, 0.65) !important;' : ''}">
                     
                     ${isDisplayed ? `
                         <div class="absolute top-1.5 left-2 bg-blue-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full border border-blue-200 shadow-xl flex items-center gap-1 z-30">
