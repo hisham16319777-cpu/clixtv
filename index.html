@@ -369,7 +369,112 @@
 
         let selectedBrandId = localStorage.getItem('clix_selected_brand') || appData.brands[0]?.id || 'samsung';
         let displayedSkuPerBrand = JSON.parse(localStorage.getItem('clix_displayed_skus')) || {};
+        let hiddenSkusPerBrand = JSON.parse(localStorage.getItem('clix_hidden_skus')) || {};
         let currentInspectedSku = null;
+
+        function getHiddenSkusForBrand(brandId) {
+            const list = hiddenSkusPerBrand[brandId];
+            return Array.isArray(list) ? list : [];
+        }
+
+        function getVisibleModelsForBrand(brandId) {
+            const hidden = new Set(getHiddenSkusForBrand(brandId));
+            return (appData.tvModels[brandId] || []).slice(0, 8).filter(m => !hidden.has(m.sku));
+        }
+
+        function hideModelOnScreen(sku) {
+            const currentHidden = new Set(getHiddenSkusForBrand(selectedBrandId));
+            currentHidden.add(sku);
+            hiddenSkusPerBrand[selectedBrandId] = Array.from(currentHidden);
+            localStorage.setItem('clix_hidden_skus', JSON.stringify(hiddenSkusPerBrand));
+
+            const remaining = getVisibleModelsForBrand(selectedBrandId);
+            if (displayedSkuPerBrand[selectedBrandId] === sku) {
+                displayedSkuPerBrand[selectedBrandId] = remaining[0] ? remaining[0].sku : null;
+                localStorage.setItem('clix_displayed_skus', JSON.stringify(displayedSkuPerBrand));
+            }
+            renderShowroomDisplay();
+        }
+
+        function restoreModelOnScreen(sku) {
+            const updatedHidden = getHiddenSkusForBrand(selectedBrandId).filter(s => s !== sku);
+            hiddenSkusPerBrand[selectedBrandId] = updatedHidden;
+            localStorage.setItem('clix_hidden_skus', JSON.stringify(hiddenSkusPerBrand));
+            renderShowroomDisplay();
+        }
+
+        function openSizeManagementModal() {
+            const allModels = (appData.tvModels[selectedBrandId] || []).slice(0, 8);
+            if (allModels.length === 0) {
+                alert('لا توجد شاشات مسجلة لهذه الماركة.');
+                return;
+            }
+            const hiddenSet = new Set(getHiddenSkusForBrand(selectedBrandId));
+            const visibleModels = allModels.filter(m => !hiddenSet.has(m.sku));
+            const hiddenModels = allModels.filter(m => hiddenSet.has(m.sku));
+            const currentActiveSku = displayedSkuPerBrand[selectedBrandId] || (visibleModels[0] ? visibleModels[0].sku : null);
+
+            lastFocusedElement = document.querySelector('.tv-focused') || document.activeElement;
+            document.getElementById('remoteSelectionTitle').innerHTML = `<i class="fa-solid fa-tv"></i> <span>إدارة المقاسات المعروضة على هذه الشاشة</span>`;
+            const listContainer = document.getElementById('remoteSelectionList');
+
+            let html = `<div class="text-[11px] text-amber-300 font-bold mb-1">اختر المقاس المعروض حالياً أو احذف أي مقاس غير متوفر من الشاشة:</div>`;
+
+            html += visibleModels.map(m => {
+                const isActive = m.sku === currentActiveSku;
+                return `
+                <div class="bg-slate-800/90 border border-slate-700 rounded-xl px-3.5 py-2.5 flex items-center justify-between gap-2">
+                    <button tabindex="0" data-action="select-size" data-sku="${m.sku}" class="tv-focusable flex-1 text-right text-white font-bold text-xs sm:text-sm flex items-center justify-between py-1 cursor-pointer">
+                        <span>مقاس ${m.size}" بوصة - ${m.titleAr || ''} <span class="text-slate-400 font-mono text-[11px]">(${m.sku})</span></span>
+                        ${isActive ? '<span class="text-[11px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full mr-2">المعروضة</span>' : ''}
+                    </button>
+                    <button tabindex="0" data-action="hide-size" data-sku="${m.sku}" title="إخفاء هذا المقاس من الشاشة" class="tv-focusable bg-red-900/60 hover:bg-red-700 text-red-200 border border-red-700/70 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 shrink-0 cursor-pointer">
+                        <i class="fa-solid fa-trash-can"></i>
+                        <span>حذف من الشاشة</span>
+                    </button>
+                </div>`;
+            }).join('');
+
+            if (hiddenModels.length > 0) {
+                html += `<div class="text-[11px] text-slate-400 font-bold pt-3 border-t border-slate-800">المقاسات المخفية حالياً على هذه الشاشة (اضغط لاستعادتها):</div>`;
+                html += hiddenModels.map(m => `
+                <div class="bg-slate-900/80 border border-slate-800 rounded-xl px-3.5 py-2 flex items-center justify-between gap-2 opacity-85">
+                    <span class="text-slate-300 text-xs font-bold">مقاس ${m.size}" بوصة - ${m.titleAr || ''} <span class="text-slate-500 font-mono text-[10px]">(${m.sku})</span></span>
+                    <button tabindex="0" data-action="restore-size" data-sku="${m.sku}" class="tv-focusable bg-emerald-700/60 hover:bg-emerald-600 text-emerald-100 border border-emerald-500/50 px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1 shrink-0 cursor-pointer">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        <span>إظهار</span>
+                    </button>
+                </div>`).join('');
+            }
+
+            listContainer.innerHTML = html;
+
+            listContainer.querySelectorAll('button[data-action]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const action = btn.getAttribute('data-action');
+                    const sku = btn.getAttribute('data-sku');
+                    if (action === 'select-size') {
+                        displayedSkuPerBrand[selectedBrandId] = sku;
+                        localStorage.setItem('clix_displayed_skus', JSON.stringify(displayedSkuPerBrand));
+                        closeRemoteSelectionModal();
+                        renderShowroomDisplay();
+                        setTimeout(() => setTVFocus(document.getElementById('displayedSizeBtn')), 80);
+                    } else if (action === 'hide-size') {
+                        hideModelOnScreen(sku);
+                        openSizeManagementModal();
+                    } else if (action === 'restore-size') {
+                        restoreModelOnScreen(sku);
+                        openSizeManagementModal();
+                    }
+                });
+            });
+
+            document.getElementById('remoteSelectionModal').classList.remove('hidden');
+            setTimeout(() => {
+                const firstBtn = listContainer.querySelector('button');
+                if (firstBtn) setTVFocus(firstBtn);
+            }, 80);
+        }
 
         let remoteTimer = null;
         let cycleTimeout = null;
@@ -747,7 +852,7 @@
 
         function openSpecsFullscreenModal(targetSku = null) {
             const currentBrand = appData.brands.find(b => b.id === selectedBrandId) || appData.brands[0];
-            const models = appData.tvModels[selectedBrandId] || [];
+            const models = getVisibleModelsForBrand(selectedBrandId);
             if (models.length === 0) {
                 alert('لا توجد مواصفات متاحة لهذه الماركة حالياً.');
                 return;
@@ -770,7 +875,7 @@
 
         function renderSpecsFullscreenModal(targetSku, brandObj = null) {
             const currentBrand = brandObj || appData.brands.find(b => b.id === selectedBrandId) || appData.brands[0] || { name: '' };
-            const models = appData.tvModels[selectedBrandId] || [];
+            const models = getVisibleModelsForBrand(selectedBrandId);
             const tv = models.find(m => m.sku === targetSku) || models[0];
             if (!tv) return;
 
@@ -1111,7 +1216,7 @@
 
         function selectDisplayedSizeSecurely() {
             pendingAction = 'selectDisplayedSize';
-            openPinModalWithFocus("يرجى إدخال الرمز السري للبائع لاختيار الشاشة المعروضة حالياً:");
+            openPinModalWithFocus("يرجى إدخال الرمز السري للبائع لإدارة المقاسات المعروضة على هذه الشاشة:");
         }
 
         function openAdminModalWithAuth() {
@@ -1159,23 +1264,7 @@
                 });
             } else if (pendingAction === 'selectDisplayedSize') {
                 closePinModal();
-                const models = (appData.tvModels[selectedBrandId] || []).slice(0, 8);
-                if (models.length === 0) {
-                    alert('لا توجد شاشات مسجلة لهذه الماركة.');
-                    return;
-                }
-                const currentActiveSku = displayedSkuPerBrand[selectedBrandId] || models[0].sku;
-                const sizeOptions = models.map(m => ({
-                    sku: m.sku,
-                    label: `مقاس ${m.size} بوصة - ${m.titleAr || ''} (SKU: ${m.sku})`,
-                    active: m.sku === currentActiveSku
-                }));
-                openRemoteSelectionModal("اختر الشاشة المعروضة حالياً (لهذه الشاشة فقط):", sizeOptions, (selected) => {
-                    displayedSkuPerBrand[selectedBrandId] = selected.sku;
-                    localStorage.setItem('clix_displayed_skus', JSON.stringify(displayedSkuPerBrand));
-                    renderShowroomDisplay();
-                    setTimeout(() => setTVFocus(document.getElementById('displayedSizeBtn')), 80);
-                });
+                openSizeManagementModal();
             } else if (pendingAction === 'openAdmin') {
                 if (enteredPin === currentAdminPin) {
                     closePinModal();
@@ -1498,7 +1587,7 @@
         function renderShowroomDisplay() {
             const currentBrand = appData.brands.find(b => b.id === selectedBrandId) || appData.brands[0];
             if (currentBrand) selectedBrandId = currentBrand.id;
-            const models = (appData.tvModels[selectedBrandId] || []).slice(0, 8);
+            const models = getVisibleModelsForBrand(selectedBrandId);
 
             if(currentBrand) {
                 document.getElementById('headerBrandName').innerText = currentBrand.name;
