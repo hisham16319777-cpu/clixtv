@@ -93,7 +93,7 @@
         <div class="flex items-center gap-3">
             <div id="syncStatusIndicator" class="bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5" title="حالة الاتصال السحابي">
                 <i class="fa-solid fa-cloud-arrow-down text-emerald-400"></i>
-                <span id="syncStatusText">متصل بالسحابة المركزية</span>
+                <span id="syncStatusText">جاري الاتصال...</span>
             </div>
 
             <button tabindex="0" onclick="toggleVideoAudio()" id="audioToggleBtn" class="tv-focusable bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg border border-slate-700 text-xs font-bold flex items-center gap-2 shadow-lg transition cursor-pointer">
@@ -281,7 +281,7 @@
 
     <script>
         const initialData = {
-            lastUpdated: Date.now(),
+            lastUpdated: 0,
             adminPin: "1234",
             brandPin: "1234",
             brands: [
@@ -325,10 +325,42 @@
             }
         };
 
-        // نظام تخزين سحابي مباشر متصل تلقائياً برابط صفحتك
+        // ===================== طبقة المزامنة السحابية الحقيقية =====================
+        // لتفعيل التحديث الفوري بين الشاشات (أجهزة مختلفة) ضع رابط قاعدة Firebase Realtime Database هنا،
+        // أو افتح الصفحة مرة واحدة على كل شاشة بالشكل:  ...index.html?db=https://اسم-مشروعك-default-rtdb.firebaseio.com
+        // وإن تُرك فارغاً يعمل التطبيق محلياً (تبويبات نفس المتصفح فقط) كما كان.
+        const CLOUD_DB_URL = 'https://clix-9c9d0-default-rtdb.firebaseio.com';
+        const CLOUD_DB_PATH = '/clix_showroom.json';
         const CLOUD_STORAGE_KEY = 'clix_direct_cloud_sync_master_db';
-        let appData = JSON.parse(localStorage.getItem(CLOUD_STORAGE_KEY)) || JSON.parse(JSON.stringify(initialData));
-        
+
+        function getCloudUrl() {
+            try {
+                const q = new URLSearchParams(location.search).get('db');
+                if (q) localStorage.setItem('clix_cloud_db_url', q.trim());
+            } catch (e) {}
+            let u = CLOUD_DB_URL;
+            try { u = u || localStorage.getItem('clix_cloud_db_url') || ''; } catch (e) {}
+            return u.trim().replace(/\/+$/, '');
+        }
+
+        function normalizeData(d) {
+            if (!d || typeof d !== 'object') return null;
+            // Firebase يحوّل المصفوفات إلى كائنات ويحذف المصفوفات الفارغة، فنعيد البنية كما يتوقعها التطبيق
+            d.brands = (Array.isArray(d.brands) ? d.brands : Object.values(d.brands || {})).filter(Boolean);
+            const tv = (d.tvModels && typeof d.tvModels === 'object') ? d.tvModels : {};
+            d.brands.forEach(b => {
+                const v = tv[b.id];
+                tv[b.id] = (Array.isArray(v) ? v : Object.values(v || {})).filter(Boolean);
+            });
+            d.tvModels = tv;
+            d.adminPin = d.adminPin || '1234';
+            d.brandPin = d.brandPin || '1234';
+            d.lastUpdated = Number(d.lastUpdated) || 0;
+            return d;
+        }
+
+        let appData = normalizeData(JSON.parse(localStorage.getItem(CLOUD_STORAGE_KEY))) || JSON.parse(JSON.stringify(initialData));
+
         let selectedBrandId = localStorage.getItem('clix_selected_brand') || appData.brands[0]?.id || 'samsung';
         let displayedSkuPerBrand = JSON.parse(localStorage.getItem('clix_displayed_skus')) || {};
 
@@ -346,53 +378,188 @@
             if (status === 'syncing') {
                 indicator.className = "bg-amber-950/80 text-amber-300 border border-amber-500/40 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5";
                 indicator.querySelector('i').className = "fa-solid fa-rotate fa-spin text-amber-400";
+            } else if (status === 'error') {
+                indicator.className = "bg-red-950/80 text-red-300 border border-red-500/40 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5";
+                indicator.querySelector('i').className = "fa-solid fa-triangle-exclamation text-red-400";
             } else {
                 indicator.className = "bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5";
                 indicator.querySelector('i').className = "fa-solid fa-cloud-arrow-down text-emerald-400";
             }
         }
 
-        // إرسال وتعميم البيانات فوراً لكل الشاشات عبر التخزين السحابي المشترك لل متصفح/النطاق
+        // ---- إرسال: يُحفظ محلياً ثم يُرفع للسحابة فوراً (مع إعادة المحاولة عند انقطاع الشبكة) ----
+        let pushInFlight = false, pushPending = false, retryTimer = null;
+
         function pushToCloudMaster() {
-            appData.lastUpdated = Date.now();
-            localStorage.setItem(CLOUD_STORAGE_KEY, JSON.stringify(appData));
+            // رقم تحديث متزايد دائماً حتى لو كانت ساعة الجهاز متأخرة
+            appData.lastUpdated = Math.max(Date.now(), (appData.lastUpdated || 0) + 1);
+            try { localStorage.setItem(CLOUD_STORAGE_KEY, JSON.stringify(appData)); } catch (e) {}
+
+            if (!getCloudUrl()) {
+                updateSyncBadge('ok', 'محلي فقط (الربط السحابي غير مفعّل)');
+                return;
+            }
             updateSyncBadge('syncing', 'جاري التعميم المباشر...');
-
-            // إرسال إشارة فورية لجميع التبويبات والشاشات المفتوحة على نفس النطاق
-            window.dispatchEvent(new StorageEvent('storage', {
-                key: CLOUD_STORAGE_KEY,
-                newValue: JSON.stringify(appData)
-            }));
-
-            setTimeout(() => {
-                updateSyncBadge('ok', 'متصل بالسحابة المركزية');
-            }, 600);
+            pushPending = true;
+            flushPush();
         }
 
-        // سحب التحديثات تلقائياً كل 3 ثوانٍ لضمان التطبيق الفوري على كل الشاشات
-        function pullFromCloudNow() {
+        async function flushPush() {
+            if (pushInFlight) return;
+            pushInFlight = true;
+            clearTimeout(retryTimer);
             try {
-                const cloudDataStr = localStorage.getItem(CLOUD_STORAGE_KEY);
-                if (cloudDataStr) {
-                    const parsed = JSON.parse(cloudDataStr);
-                    const remoteTime = parsed.lastUpdated || 0;
-                    const localTime = appData.lastUpdated || 0;
-
-                    if (remoteTime > localTime) {
-                        appData = parsed;
-                        if (!appData.brands.find(b => b.id === selectedBrandId)) {
-                            selectedBrandId = appData.brands[0]?.id || 'samsung';
-                            localStorage.setItem('clix_selected_brand', selectedBrandId);
-                        }
-                        renderShowroomDisplay();
-                        const adminModalOpen = !document.getElementById('adminModal').classList.contains('hidden');
-                        if (adminModalOpen) {
-                            loadAdminBrandData();
-                        }
-                        updateSyncBadge('ok', 'تم التحديث المباشر عن بُعد');
-                    }
+                while (pushPending) {
+                    pushPending = false;
+                    const res = await fetch(getCloudUrl() + CLOUD_DB_PATH, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(appData)
+                    });
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
                 }
-            } catch (err) {}
+                updateSyncBadge('ok', 'متصل بالسحابة المركزية');
+            } catch (err) {
+                pushPending = true;
+                updateSyncBadge('error', 'تعذر الإرسال - إعادة المحاولة...');
+                retryTimer = setTimeout(flushPush, 4000);
+            } finally {
+                pushInFlight = false;
+            }
+        }
+
+        // ---- استقبال: تطبيق بيانات وصلت من شاشة/مشرف آخر على كل الشاشات فوراً ----
+        function applyRemoteData(raw, force) {
+            const parsed = normalizeData(raw);
+            if (!parsed) return false;
+            if (!force && parsed.lastUpdated <= (appData.lastUpdated || 0)) return false;
+            if (force && JSON.stringify(parsed) === JSON.stringify(appData)) return false;
+
+            appData = parsed;
+            try { localStorage.setItem(CLOUD_STORAGE_KEY, JSON.stringify(appData)); } catch (e) {}
+
+            if (!appData.brands.find(b => b.id === selectedBrandId)) {
+                selectedBrandId = appData.brands[0]?.id || 'samsung';
+                localStorage.setItem('clix_selected_brand', selectedBrandId);
+            }
+            renderShowroomDisplay();
+
+            const adminModal = document.getElementById('adminModal');
+            if (adminModal && !adminModal.classList.contains('hidden')) {
+                populateAdminBrandSelect();
+                const typingNow = adminModal.contains(document.activeElement) &&
+                    /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName) &&
+                    document.activeElement.id !== 'adminBrandSelect';
+                // لا نعيد بناء نموذج المشرف أثناء كتابته حتى لا يضيع ما يكتبه
+                if (!typingNow && !liveTimer) loadAdminBrandData();
+            }
+            updateSyncBadge('ok', 'تم التحديث المباشر');
+            return true;
+        }
+
+        let firstCloudSyncDone = false;
+        function handleCloudSnapshot(data) {
+            if (data === null || data === undefined) {
+                // قاعدة البيانات السحابية فارغة: نزرع بيانات هذا الجهاز كأول نسخة
+                if (!firstCloudSyncDone) { firstCloudSyncDone = true; pushToCloudMaster(); }
+                return;
+            }
+            // أول اتصال: السحابة هي المرجع حتى لو كان كاش الجهاز أحدث بالخطأ
+            applyRemoteData(data, !firstCloudSyncDone);
+            firstCloudSyncDone = true;
+        }
+
+        async function pullFromCloudNow() {
+            try {
+                if (getCloudUrl()) {
+                    const res = await fetch(getCloudUrl() + CLOUD_DB_PATH + '?_=' + Date.now(), { cache: 'no-store' });
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    handleCloudSnapshot(await res.json());
+                    if (!pushInFlight && !pushPending) updateSyncBadge('ok', 'متصل بالسحابة المركزية');
+                } else {
+                    const cloudDataStr = localStorage.getItem(CLOUD_STORAGE_KEY);
+                    if (cloudDataStr) applyRemoteData(JSON.parse(cloudDataStr), false);
+                }
+            } catch (err) {
+                if (getCloudUrl()) updateSyncBadge('error', 'انقطاع الاتصال - يعمل بآخر بيانات محفوظة');
+            }
+        }
+
+        // بث مباشر (Server-Sent Events): أي تعديل يصل لكل الشاشات خلال لحظات دون انتظار
+        let cloudStream = null, streamAlive = false;
+        function startCloudStream() {
+            if (!getCloudUrl() || typeof EventSource === 'undefined') return;
+            try {
+                if (cloudStream) cloudStream.close();
+                cloudStream = new EventSource(getCloudUrl() + CLOUD_DB_PATH);
+                cloudStream.onopen = () => { streamAlive = true; };
+                cloudStream.addEventListener('put', (ev) => {
+                    try {
+                        const msg = JSON.parse(ev.data);
+                        if (msg && msg.path === '/') handleCloudSnapshot(msg.data);
+                        else pullFromCloudNow();
+                    } catch (e) {}
+                });
+                cloudStream.addEventListener('patch', () => pullFromCloudNow());
+                cloudStream.onerror = () => {
+                    streamAlive = false;
+                    // بعض المتصفحات لا تعيد الاتصال تلقائياً بعد إغلاق الخادم للقناة
+                    if (cloudStream && cloudStream.readyState === 2) setTimeout(startCloudStream, 5000);
+                };
+            } catch (e) { streamAlive = false; }
+        }
+
+        function initCloudSync() {
+            if (getCloudUrl()) {
+                updateSyncBadge('syncing', 'جاري الاتصال بالسحابة...');
+                pullFromCloudNow();
+                startCloudStream();
+                // شبكة أمان: استعلام دوري فقط إذا لم يكن البث المباشر شغّالاً (لتوفير استهلاك الإنترنت)
+                setInterval(() => { if (!streamAlive) pullFromCloudNow(); }, 15000);
+                window.addEventListener('online', () => { pullFromCloudNow(); startCloudStream(); });
+                document.addEventListener('visibilitychange', () => { if (!document.hidden) pullFromCloudNow(); });
+            } else {
+                updateSyncBadge('ok', 'محلي فقط (الربط السحابي غير مفعّل)');
+                setInterval(pullFromCloudNow, 3000);
+                window.addEventListener('storage', (e) => {
+                    if (e.key === CLOUD_STORAGE_KEY && e.newValue) pullFromCloudNow();
+                });
+            }
+            initAdminLiveEditing();
+        }
+
+        // ---- تعديلات المشرف تُطبَّق على كل الشاشات فور الكتابة/الاختيار ----
+        let liveTimer = null;
+        function flushLiveEdit() {
+            if (!liveTimer) return;
+            clearTimeout(liveTimer);
+            liveTimer = null;
+            collectAdminFields();
+            pushToCloudMaster();
+            renderShowroomDisplay();
+        }
+        function initAdminLiveEditing() {
+            const modal = document.getElementById('adminModal');
+            if (!modal) return;
+            const schedule = (e) => {
+                const t = e.target;
+                if (!t || !t.id || !/^admin_/.test(t.id)) return;
+                clearTimeout(liveTimer);
+                liveTimer = setTimeout(() => { liveTimer = null; flushLiveEdit_now(); }, 500);
+            };
+            modal.addEventListener('input', schedule);
+            modal.addEventListener('change', schedule);
+            // قبل تبديل الماركة داخل لوحة المشرف نحفظ أي تعديل معلّق على الماركة القديمة
+            modal.addEventListener('change', (e) => {
+                if (e.target && e.target.id === 'adminBrandSelect') {
+                    if (liveTimer) flushLiveEdit();
+                }
+            }, true);
+        }
+        function flushLiveEdit_now() {
+            collectAdminFields();
+            pushToCloudMaster();
+            renderShowroomDisplay();
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -401,14 +568,7 @@
             populateAdminBrandSelect();
             initTVRemoteNavigation();
 
-            // فحص التحديثات مباشرة كل 3 ثوانٍ
-            setInterval(pullFromCloudNow, 3000);
-
-            window.addEventListener('storage', (e) => {
-                if (e.key === CLOUD_STORAGE_KEY && e.newValue) {
-                    pullFromCloudNow();
-                }
-            });
+            initCloudSync();
 
             if ('wakeLock' in navigator) {
                 navigator.wakeLock.request('screen').catch(() => {});
@@ -1089,6 +1249,8 @@
         }
 
         function addNewTvModel() {
+            clearTimeout(liveTimer); liveTimer = null;
+            collectAdminFields();
             const brandId = document.getElementById('adminBrandSelect').value;
             if(!appData.tvModels[brandId]) appData.tvModels[brandId] = [];
             if(appData.tvModels[brandId].length >= 8) {
@@ -1110,49 +1272,62 @@
                 price: '2,999',
                 oldPrice: '3,499'
             });
+            pushToCloudMaster();
+            renderShowroomDisplay();
             loadAdminBrandData();
         }
 
         function removeTvModel(index) {
             const brandId = document.getElementById('adminBrandSelect').value;
             if(confirm('هل تريد حذف هذه الشاشة؟')) {
+                clearTimeout(liveTimer); liveTimer = null;
+                collectAdminFields();
                 appData.tvModels[brandId].splice(index, 1);
+                pushToCloudMaster();
+                renderShowroomDisplay();
                 loadAdminBrandData();
             }
         }
 
-        function saveAdminChanges() {
+        function collectAdminFields() {
             const brandId = document.getElementById('adminBrandSelect').value;
             const models = appData.tvModels[brandId] || [];
+            const val = (id) => { const el = document.getElementById(id); return el ? el.value : null; };
 
             models.forEach((m, index) => {
-                m.sku = document.getElementById(`admin_sku_${index}`).value;
-                m.size = document.getElementById(`admin_size_${index}`).value;
-                m.promoBadge = document.getElementById(`admin_promoBadge_${index}`).value;
-                m.originAr = document.getElementById(`admin_originAr_${index}`).value;
+            if (!document.getElementById(`admin_sku_${index}`)) return;
+                m.sku = val(`admin_sku_${index}`);
+                m.size = val(`admin_size_${index}`);
+                m.promoBadge = val(`admin_promoBadge_${index}`);
+                m.originAr = val(`admin_originAr_${index}`);
                 
-                const hzSelect = document.getElementById(`admin_refreshRate_${index}`).value;
+                const hzSelect = val(`admin_refreshRate_${index}`);
                 if (hzSelect === 'مخصص / يدوي') {
-                    m.refreshRate = document.getElementById(`admin_customHz_${index}`).value || '60Hz';
+                    m.refreshRate = val(`admin_customHz_${index}`) || '60Hz';
                 } else {
                     m.refreshRate = hzSelect;
                 }
 
-                const osSelect = document.getElementById(`admin_osSystem_${index}`).value;
+                const osSelect = val(`admin_osSystem_${index}`);
                 if (osSelect === 'مخصص / يدوي') {
-                    m.osSystem = document.getElementById(`admin_customOs_${index}`).value || 'Smart TV';
+                    m.osSystem = val(`admin_customOs_${index}`) || 'Smart TV';
                 } else {
                     m.osSystem = osSelect;
                 }
 
-                m.titleAr = document.getElementById(`admin_titleAr_${index}`).value;
-                m.titleEn = document.getElementById(`admin_titleEn_${index}`).value;
-                m.price = document.getElementById(`admin_price_${index}`).value;
-                m.oldPrice = document.getElementById(`admin_oldPrice_${index}`).value;
-                m.warrantyAr = document.getElementById(`admin_warrantyAr_${index}`).value;
-                m.specsAr = document.getElementById(`admin_specsAr_${index}`).value;
+                m.titleAr = val(`admin_titleAr_${index}`);
+                m.titleEn = val(`admin_titleEn_${index}`);
+                m.price = val(`admin_price_${index}`);
+                m.oldPrice = val(`admin_oldPrice_${index}`);
+                m.warrantyAr = val(`admin_warrantyAr_${index}`);
+                m.specsAr = val(`admin_specsAr_${index}`);
             });
 
+        }
+
+        function saveAdminChanges() {
+            clearTimeout(liveTimer); liveTimer = null;
+            collectAdminFields();
             // تعميم التعديلات فوراً على جميع الشاشات
             pushToCloudMaster();
             renderShowroomDisplay();
@@ -1181,7 +1356,8 @@
                 document.getElementById('headerBrandName').innerText = currentBrand.name;
             }
 
-            const activeSku = displayedSkuPerBrand[selectedBrandId] || (models[0] ? models[0].sku : null);
+            let activeSku = displayedSkuPerBrand[selectedBrandId] || (models[0] ? models[0].sku : null);
+            if (!models.find(m => m.sku === activeSku)) activeSku = models[0] ? models[0].sku : null;
             const activeModel = models.find(m => m.sku === activeSku);
 
             document.getElementById('currentDisplayedBadge').innerText = activeModel ? `${activeModel.size}" بوصة` : 'غير محدد';
