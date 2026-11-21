@@ -123,7 +123,7 @@
         </div>
 
         <!-- شبكة الشاشات -->
-        <div id="tvCardsGrid" class="grid grid-cols-4 gap-3 max-w-6xl mx-auto my-auto items-center justify-center w-full"></div>
+        <div id="tvCardsGrid" class="grid grid-cols-4 gap-3 max-w-6xl mx-auto my-auto items-stretch justify-center w-full"></div>
 
         <!-- أزرار التحكم والشريط التسويقي -->
         <div class="mt-1.5 shrink-0 max-w-4xl mx-auto w-full">
@@ -1514,21 +1514,21 @@
             const totalCount = models.length;
             const isMultiRow = totalCount > 4;
 
-            let cardHeightClass = isMultiRow ? "h-[282px]" : "h-[410px]";
+            let cardHeightClass = isMultiRow ? "min-h-[275px] h-auto" : "min-h-[410px] h-auto";
             let paddingClass = isMultiRow ? "px-2.5 py-2" : "p-3.5";
             let fontSizeClass = isMultiRow ? "text-[11px]" : "text-sm";
             let priceSizeClass = isMultiRow ? "text-lg" : "text-2xl";
 
             grid.className = isMultiRow
-                ? "grid grid-cols-4 gap-2 max-w-6xl mx-auto my-auto items-center justify-center w-full"
-                : "grid grid-cols-4 gap-4 max-w-6xl mx-auto my-auto items-center justify-center w-full";
+                ? "grid grid-cols-4 gap-2 max-w-6xl mx-auto my-auto items-stretch justify-center w-full"
+                : "grid grid-cols-4 gap-4 max-w-6xl mx-auto my-auto items-stretch justify-center w-full";
 
             grid.innerHTML = models.map((item) => {
                 const isDisplayed = (item.sku === activeSku);
                 const goldenWarrantyPrice = calculateGoldenWarranty(item.price);
 
                 return `
-                <div tabindex="0" role="button" onclick="openSpecsFullscreenModal('${item.sku}')" class="tv-focusable glass-panel rounded-xl ${paddingClass} flex flex-col justify-between relative transition duration-300 cursor-pointer overflow-hidden ${cardHeightClass} ${isDisplayed ? 'featured-card' : 'hover:border-slate-500 hover:scale-[1.01]'}" style="${isDisplayed ? 'border: 3px solid #3b82f6 !important; background: rgba(30, 58, 138, 0.5) !important; box-shadow: 0 0 35px rgba(59, 130, 246, 0.65) !important;' : ''}">
+                <div tabindex="0" role="button" onclick="openSpecsFullscreenModal('${item.sku}')" class="tv-focusable glass-panel rounded-xl ${paddingClass} flex flex-col justify-between relative transition duration-300 cursor-pointer ${cardHeightClass} ${isDisplayed ? 'featured-card' : 'hover:border-slate-500 hover:scale-[1.01]'}" style="${isDisplayed ? 'border: 3px solid #3b82f6 !important; background: rgba(30, 58, 138, 0.5) !important; box-shadow: 0 0 35px rgba(59, 130, 246, 0.65) !important;' : ''}">
                     
                     ${isDisplayed ? `
                         <div class="absolute top-1.5 left-2 bg-blue-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full border border-blue-200 shadow-xl flex items-center gap-1 z-30">
@@ -1537,7 +1537,7 @@
                         </div>
                     ` : ''}
 
-                    <div class="min-h-0 flex-1 flex flex-col justify-between">
+                    <div class="flex-1 flex flex-col justify-between gap-1.5">
                         <div>
                             <div class="flex justify-between items-center ${isMultiRow ? 'mb-0.5' : 'mb-1 mt-0.5'}">
                                 <span class="${isMultiRow ? 'text-xl leading-none' : 'text-3xl'} font-black text-blue-400">${item.size}"</span>
@@ -1555,11 +1555,11 @@
                             </div>
 
                             <div class="${isMultiRow ? 'mb-0.5' : 'mb-1'}">
-                                <h3 class="font-black text-white ${fontSizeClass} leading-tight line-clamp-1">${item.titleAr || ''}</h3>
-                                <p class="${isMultiRow ? 'text-[9px] leading-tight' : 'text-[11px]'} text-blue-300 font-medium truncate">${item.titleEn || ''}</p>
+                                <h3 class="font-black text-white ${fontSizeClass} leading-tight break-words">${item.titleAr || ''}</h3>
+                                <p class="${isMultiRow ? 'text-[9px] leading-tight' : 'text-[11px]'} text-blue-300 font-medium break-words">${item.titleEn || ''}</p>
                             </div>
 
-                            <div class="flex items-center gap-1 ${isMultiRow ? 'mb-0.5' : 'mb-1'}">
+                            <div class="flex flex-wrap items-center gap-1 ${isMultiRow ? 'mb-0.5' : 'mb-1'}">
                                 <span class="bg-indigo-950/80 text-indigo-300 border border-indigo-700/50 ${isMultiRow ? 'text-[8px] px-1.5 py-0' : 'text-[10px] px-2 py-0.5'} rounded font-bold">
                                     <i class="fa-solid fa-bolt text-amber-400"></i> ${item.refreshRate || '60Hz'}
                                 </span>
@@ -1570,29 +1570,29 @@
                         </div>
 
                         <div>
-                            <div class="bg-slate-950/60 ${isMultiRow ? 'px-1.5 py-1 mb-0.5' : 'p-1.5 mb-1'} rounded-lg border border-slate-800/80">
-                                <p class="text-slate-200 ${isMultiRow ? 'text-[9px]' : 'text-[11px]'} font-bold leading-snug line-clamp-1">${item.specsAr || ''}</p>
+                            <div class="bg-slate-950/60 ${isMultiRow ? 'px-2 py-1.5 mb-1' : 'p-2 mb-1.5'} rounded-lg border border-slate-800/80">
+                                <p class="text-slate-100 ${isMultiRow ? 'text-[9.5px]' : 'text-[11.5px]'} font-bold leading-relaxed whitespace-normal break-words">${item.specsAr || ''}</p>
                             </div>
                             
                             <div class="grid grid-cols-2 gap-1 ${isMultiRow ? 'mb-0.5 text-[8px] px-1.5 py-0.5' : 'mb-1 text-[10px] p-1.5'} text-slate-300 bg-slate-900/60 rounded-lg border border-slate-800">
-                                <div class="truncate">
+                                <div class="break-words">
                                     <span class="text-slate-400">الضمان: </span> 
                                     <span class="font-bold text-amber-400">${item.warrantyAr || 'سنتان'}</span>
                                 </div>
-                                <div class="truncate">
+                                <div class="break-words">
                                     <span class="text-slate-400">المنشأ: </span> 
                                     <span class="font-bold text-blue-300">${item.originAr || 'وارد الوكيل'}</span>
                                 </div>
                             </div>
 
-                            <div class="bg-gradient-to-r from-amber-950/40 to-slate-900 ${isMultiRow ? 'px-1.5 py-0.5 mb-0.5' : 'p-1.5 mb-1'} rounded-lg border border-amber-500/40 flex items-center justify-between">
-                                <span class="${isMultiRow ? 'text-[8.5px]' : 'text-[10px]'} text-amber-200 font-bold truncate"><i class="fa-solid fa-crown text-amber-400 ml-1"></i> الضمان الذهبي 5 سنوات:</span>
+                            <div class="bg-gradient-to-r from-amber-950/40 to-slate-900 ${isMultiRow ? 'px-1.5 py-0.5 mb-0.5' : 'p-1.5 mb-1'} rounded-lg border border-amber-500/40 flex items-center justify-between gap-1">
+                                <span class="${isMultiRow ? 'text-[8.5px]' : 'text-[10px]'} text-amber-200 font-bold"><i class="fa-solid fa-crown text-amber-400 ml-1"></i> الضمان الذهبي 5 سنوات:</span>
                                 <span class="${isMultiRow ? 'text-[9.5px]' : 'text-[11px]'} font-black text-amber-300 shrink-0">${goldenWarrantyPrice}</span>
                             </div>
                         </div>
                     </div>
 
-                    <div class="${isMultiRow ? 'pt-1' : 'pt-1.5'} border-t border-slate-800 shrink-0">
+                    <div class="${isMultiRow ? 'pt-1 mt-1' : 'pt-1.5 mt-1'} border-t border-slate-800 shrink-0">
                         <div class="flex items-center justify-between">
                             <div class="flex items-baseline gap-1.5">
                                 <div class="flex items-baseline gap-1">
