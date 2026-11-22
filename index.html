@@ -91,7 +91,7 @@
         </div>
 
         <div class="flex items-center gap-3">
-            <div id="syncStatusIndicator" class="bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5" title="حالة الاتصال السحابي">
+            <div id="syncStatusIndicator" class="bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5" title="حالة الاتصال السحابي ووضع الأوفلاين">
                 <i class="fa-solid fa-cloud-arrow-down text-emerald-400"></i>
                 <span id="syncStatusText">جاري الاتصال...</span>
             </div>
@@ -214,10 +214,10 @@
             <!-- حالة المزامنة التلقائية -->
             <div class="bg-gradient-to-r from-emerald-950/60 to-slate-900 border border-emerald-500/50 p-4 rounded-xl mb-6 shadow-lg">
                 <h4 class="font-bold text-emerald-300 text-sm mb-1.5 flex items-center gap-2">
-                    <i class="fa-solid fa-bolt text-emerald-400"></i> التحديث التلقائي المباشر مفعل بنجاح
+                    <i class="fa-solid fa-bolt text-emerald-400"></i> التحديث التلقائي المباشر + وضع الأوفلاين مفعلان
                 </h4>
                 <p class="text-[11px] text-slate-300">
-                    جميع شاشات التلفزيون المتصلة بهذا الرابط متزامنة سحابياً بشكل كامل. أي تعديل في الأسعار أو المواصفات يتم بثه فوراً وتحديث جميع الشاشات في نفس اللحظة تلقائياً.
+                    جميع شاشات التلفزيون المتصلة بهذا الرابط متزامنة سحابياً ومخزنة محلياً عبر Service Worker لتواصل العمل حتى عند انقطاع الإنترنت.
                 </p>
             </div>
 
@@ -246,12 +246,13 @@
                     <div>
                         <h4 class="font-bold text-blue-300 text-sm flex items-center gap-2">
                             <i class="fa-solid fa-file-excel text-emerald-400 text-base"></i>
-                            تحديث بيانات ومواصفات ومقاسات وأسعار الشاشات لجميع الشاشات عبر CSV (UTF-8)
+                            تحديث بيانات ومواصفات ومقاسات وأوسمة وأسعار الشاشات لجميع الشاشات عبر CSV (UTF-8)
                         </h4>
                         <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">
                             ملاحظة مهمة: احفظ ملف الإكسل بصيغة <span class="text-emerald-300 font-bold">CSV UTF-8</span> لضمان ظهور الحروف العربية بشكل سليم دون رموز.
                             الأعمدة المدعومة: <span class="text-amber-300 font-mono font-bold">sku</span>،
                             <span class="text-pink-300 font-mono font-bold">size / CSIZE</span> (المقاس)،
+                            <span class="text-yellow-300 font-mono font-bold">promoBadge / badge / الوسام</span>،
                             <span class="text-emerald-300 font-mono font-bold">promo_price</span>،
                             <span class="text-slate-300 font-mono font-bold">original_price</span>،
                             <span class="text-cyan-300 font-mono font-bold">specsAr / specs</span>،
@@ -301,6 +302,107 @@
     </div>
 
     <script>
+        function registerOfflineServiceWorker() {
+            if (!('serviceWorker' in navigator)) return;
+
+            const assetUrls = [
+                location.href,
+                'https://cdn.tailwindcss.com',
+                'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
+                'https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap',
+                'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js'
+            ];
+
+            const swCode = `
+                const CACHE_NAME = 'clix-showroom-offline-v1';
+                const PRECACHE_URLS = ${JSON.stringify(assetUrls)};
+
+                self.addEventListener('install', (event) => {
+                    event.waitUntil(
+                        caches.open(CACHE_NAME).then(async (cache) => {
+                            await Promise.allSettled(
+                                PRECACHE_URLS.map((url) =>
+                                    fetch(new Request(url, { mode: 'cors', cache: 'reload' }))
+                                        .then((res) => {
+                                            if (res && (res.ok || res.type === 'opaque')) {
+                                                return cache.put(url, res);
+                                            }
+                                        })
+                                        .catch(() => null)
+                                )
+                            );
+                        }).then(() => self.skipWaiting())
+                    );
+                });
+
+                self.addEventListener('activate', (event) => {
+                    event.waitUntil(
+                        caches.keys().then((keys) =>
+                            Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+                        ).then(() => self.clients.claim())
+                    );
+                });
+
+                self.addEventListener('fetch', (event) => {
+                    const req = event.request;
+                    if (req.method !== 'GET') return;
+                    const url = new URL(req.url);
+
+                    if (url.hostname.includes('firebaseio.com') || url.pathname.endsWith('.json')) {
+                        return;
+                    }
+
+                    if (req.mode === 'navigate') {
+                        event.respondWith(
+                            fetch(req)
+                                .then((res) => {
+                                    if (res && res.ok) {
+                                        const copy = res.clone();
+                                        caches.open(CACHE_NAME).then((c) => c.put(req, copy));
+                                    }
+                                    return res;
+                                })
+                                .catch(() => caches.match(req).then((cached) => cached || caches.match(self.registration.scope)))
+                        );
+                        return;
+                    }
+
+                    event.respondWith(
+                        caches.match(req).then((cached) => {
+                            const networkFetch = fetch(req)
+                                .then((res) => {
+                                    if (res && (res.ok || res.type === 'opaque')) {
+                                        const copy = res.clone();
+                                        caches.open(CACHE_NAME).then((c) => c.put(req, copy));
+                                    }
+                                    return res;
+                                })
+                                .catch(() => cached);
+                            return cached || networkFetch;
+                        })
+                    );
+                });
+            `;
+
+            try {
+                const blob = new Blob([swCode], { type: 'application/javascript' });
+                const swUrl = URL.createObjectURL(blob);
+                navigator.serviceWorker.register(swUrl)
+                    .then((reg) => {
+                        if (reg.active) {
+                            reg.active.postMessage({ type: 'CACHE_ASSETS', urls: assetUrls });
+                        }
+                        if ('caches' in window) {
+                            caches.open('clix-showroom-offline-v1').then((cache) => {
+                                cache.add(new Request(location.href, { cache: 'reload' })).catch(() => {});
+                            });
+                        }
+                        setTimeout(() => URL.revokeObjectURL(swUrl), 10000);
+                    })
+                    .catch(() => {});
+            } catch (e) {}
+        }
+
         const initialData = {
             lastUpdated: 0,
             adminPin: "1234",
@@ -496,7 +598,15 @@
             const statusText = document.getElementById('syncStatusText');
             if (!indicator || !statusText) return;
 
-            statusText.innerText = text;
+            const isOffline = (typeof navigator !== 'undefined' && navigator.onLine === false);
+            statusText.innerText = isOffline ? 'وضع أوفلاين (بيانات محفوظة)' : text;
+
+            if (isOffline) {
+                indicator.className = "bg-slate-800/90 text-amber-300 border border-amber-500/40 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5";
+                indicator.querySelector('i').className = "fa-solid fa-wifi-slash text-amber-400";
+                return;
+            }
+
             if (status === 'syncing') {
                 indicator.className = "bg-amber-950/80 text-amber-300 border border-amber-500/40 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5";
                 indicator.querySelector('i').className = "fa-solid fa-rotate fa-spin text-amber-400";
@@ -517,6 +627,11 @@
 
             if (!getCloudUrl()) {
                 updateSyncBadge('ok', 'محلي فقط (الربط السحابي غير مفعّل)');
+                return;
+            }
+            if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+                pushPending = true;
+                updateSyncBadge('error', 'وضع أوفلاين (سيُرسل عند عودة الشبكة)');
                 return;
             }
             updateSyncBadge('syncing', 'جاري التعميم المباشر...');
@@ -593,6 +708,10 @@
         async function pullFromCloudNow() {
             try {
                 if (getCloudUrl()) {
+                    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+                        updateSyncBadge('error', 'وضع أوفلاين - يعمل بالبيانات المحلية');
+                        return;
+                    }
                     const res = await fetch(getCloudUrl() + CLOUD_DB_PATH + '?_=' + Date.now(), { cache: 'no-store' });
                     if (!res.ok) throw new Error('HTTP ' + res.status);
                     handleCloudSnapshot(await res.json());
@@ -609,6 +728,7 @@
         let cloudStream = null, streamAlive = false;
         function startCloudStream() {
             if (!getCloudUrl() || typeof EventSource === 'undefined') return;
+            if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
             try {
                 if (cloudStream) cloudStream.close();
                 cloudStream = new EventSource(getCloudUrl() + CLOUD_DB_PATH);
@@ -623,18 +743,35 @@
                 cloudStream.addEventListener('patch', () => pullFromCloudNow());
                 cloudStream.onerror = () => {
                     streamAlive = false;
+                    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+                        try { cloudStream.close(); } catch (e) {}
+                        return;
+                    }
                     if (cloudStream && cloudStream.readyState === 2) setTimeout(startCloudStream, 5000);
                 };
             } catch (e) { streamAlive = false; }
         }
 
         function initCloudSync() {
+            window.addEventListener('offline', () => {
+                streamAlive = false;
+                try { if (cloudStream) cloudStream.close(); } catch (e) {}
+                updateSyncBadge('error', 'وضع أوفلاين - يعمل بالبيانات المحلية');
+            });
+
             if (getCloudUrl()) {
                 updateSyncBadge('syncing', 'جاري الاتصال بالسحابة...');
                 pullFromCloudNow();
                 startCloudStream();
-                setInterval(() => { if (!streamAlive) pullFromCloudNow(); }, 15000);
-                window.addEventListener('online', () => { pullFromCloudNow(); startCloudStream(); });
+                setInterval(() => {
+                    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+                        updateSyncBadge('error', 'وضع أوفلاين - يعمل بالبيانات المحلية');
+                        return;
+                    }
+                    if (!streamAlive) pullFromCloudNow();
+                    if (pushPending) flushPush();
+                }, 15000);
+                window.addEventListener('online', () => { pullFromCloudNow(); startCloudStream(); if (pushPending) flushPush(); });
                 document.addEventListener('visibilitychange', () => { if (!document.hidden) pullFromCloudNow(); });
             } else {
                 updateSyncBadge('ok', 'محلي فقط (الربط السحابي غير مفعّل)');
@@ -679,6 +816,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            registerOfflineServiceWorker();
             setupReadingTextAnimation();
             renderShowroomDisplay();
             populateAdminBrandSelect();
@@ -1144,6 +1282,14 @@
             return '';
         }
 
+        function hasRowKey(row, keys) {
+            const lowerMap = {};
+            Object.keys(row || {}).forEach(col => {
+                lowerMap[col.toString().trim().toLowerCase()] = row[col];
+            });
+            return keys.some(k => k in row || k.toString().trim().toLowerCase() in lowerMap);
+        }
+
         function normalizeSizeValue(rawSize) {
             const cleaned = (rawSize || '').toString().replace(/["'“”]/g, '').replace(/بوصة|inch/gi, '').trim();
             if (/^0+\d+$/.test(cleaned)) {
@@ -1158,10 +1304,13 @@
 
         function processParsedCsvRows(data, inputEl) {
             let updatedCount = 0;
+            const badgeKeys = ['promoBadge', 'promo_badge', 'badge', 'الوسام', 'وسام الترويج', 'العرض', 'وسام العرض'];
 
             data.forEach(row => {
                 const skuVal = pickRowValue(row, ['sku', 'SKU', 'رقم SKU']);
                 const sizeVal = normalizeSizeValue(pickRowValue(row, ['size', 'CSIZE', 'csize', 'المقاس', 'المقاس (بوصة)', 'inch']));
+                const hasBadgeCol = hasRowKey(row, badgeKeys);
+                const promoBadgeVal = pickRowValue(row, badgeKeys);
                 const promoPriceVal = pickRowValue(row, ['promo_price', 'price', 'Price', 'السعر المخفض', 'السعر', 'السعر الحالي']);
                 const originalPriceVal = pickRowValue(row, ['original_price', 'oldPrice', 'السعر الاصلي', 'السعر الأصلي', 'السعر السابق']);
                 const specsVal = pickRowValue(row, ['specsAr', 'specs', 'المواصفات', 'المواصفات التفصيلية']);
@@ -1176,6 +1325,7 @@
                         appData.tvModels[brandKey].forEach(tv => {
                             if (tv.sku && tv.sku.toString().trim() === skuVal) {
                                 if (sizeVal) tv.size = sizeVal;
+                                if (hasBadgeCol) tv.promoBadge = promoBadgeVal;
                                 if (promoPriceVal) tv.price = promoPriceVal;
                                 if (originalPriceVal) tv.oldPrice = originalPriceVal;
                                 if (specsVal) tv.specsAr = specsVal;
