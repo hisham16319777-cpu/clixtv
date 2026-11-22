@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
-        body { font-family: 'Tajawal', sans-serif; }
+        body { font-family: 'Tajawal', sans-serif; background-color: #020617; color: #ffffff; }
         .glass-panel {
             background: rgba(15, 23, 42, 0.94);
             backdrop-filter: blur(14px);
@@ -22,7 +22,7 @@
             transform: scale(1.02);
             z-index: 10;
         }
-        
+
         .tv-focusable:focus,
         .tv-focused {
             outline: none !important;
@@ -67,7 +67,7 @@
 </head>
 <body class="bg-slate-950 text-white h-screen overflow-hidden flex flex-col justify-between select-none">
 
-    <video id="demoVideo" autoplay loop muted playsinline class="fullscreen-bg" onerror="enableFallbackAnimation()">
+    <video id="demoVideo" autoplay loop muted playsinline class="fullscreen-bg" onerror="enableFallbackAnimation()" onstalled="handleVideoNetworkIssue()" onabort="handleVideoNetworkIssue()">
         <source src="https://vjs.zencdn.net/v/oceans.mp4" type="video/mp4">
     </video>
 
@@ -91,7 +91,7 @@
         </div>
 
         <div class="flex items-center gap-3">
-            <div id="syncStatusIndicator" class="bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5" title="حالة الاتصال السحابي ووضع الأوفلاين">
+            <div id="syncStatusIndicator" class="bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5" title="حالة الاتصال السحابي">
                 <i class="fa-solid fa-cloud-arrow-down text-emerald-400"></i>
                 <span id="syncStatusText">جاري الاتصال...</span>
             </div>
@@ -214,10 +214,10 @@
             <!-- حالة المزامنة التلقائية -->
             <div class="bg-gradient-to-r from-emerald-950/60 to-slate-900 border border-emerald-500/50 p-4 rounded-xl mb-6 shadow-lg">
                 <h4 class="font-bold text-emerald-300 text-sm mb-1.5 flex items-center gap-2">
-                    <i class="fa-solid fa-bolt text-emerald-400"></i> التحديث التلقائي المباشر + وضع الأوفلاين مفعلان
+                    <i class="fa-solid fa-bolt text-emerald-400"></i> التحديث التلقائي المباشر مفعل بنجاح
                 </h4>
                 <p class="text-[11px] text-slate-300">
-                    جميع شاشات التلفزيون المتصلة بهذا الرابط متزامنة سحابياً ومخزنة محلياً عبر Service Worker لتواصل العمل حتى عند انقطاع الإنترنت.
+                    جميع شاشات التلفزيون المتصلة بهذا الرابط متزامنة سحابياً بشكل كامل مع حفظ تلقائي محلي لضمان استمرار العمل حتى عند انقطاع الإنترنت.
                 </p>
             </div>
 
@@ -246,13 +246,12 @@
                     <div>
                         <h4 class="font-bold text-blue-300 text-sm flex items-center gap-2">
                             <i class="fa-solid fa-file-excel text-emerald-400 text-base"></i>
-                            تحديث بيانات ومواصفات ومقاسات وأوسمة وأسعار الشاشات لجميع الشاشات عبر CSV (UTF-8)
+                            تحديث بيانات ومواصفات ومقاسات وأسعار الشاشات لجميع الشاشات عبر CSV (UTF-8)
                         </h4>
                         <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">
                             ملاحظة مهمة: احفظ ملف الإكسل بصيغة <span class="text-emerald-300 font-bold">CSV UTF-8</span> لضمان ظهور الحروف العربية بشكل سليم دون رموز.
                             الأعمدة المدعومة: <span class="text-amber-300 font-mono font-bold">sku</span>،
                             <span class="text-pink-300 font-mono font-bold">size / CSIZE</span> (المقاس)،
-                            <span class="text-yellow-300 font-mono font-bold">promoBadge / badge / الوسام</span>،
                             <span class="text-emerald-300 font-mono font-bold">promo_price</span>،
                             <span class="text-slate-300 font-mono font-bold">original_price</span>،
                             <span class="text-cyan-300 font-mono font-bold">specsAr / specs</span>،
@@ -302,107 +301,6 @@
     </div>
 
     <script>
-        function registerOfflineServiceWorker() {
-            if (!('serviceWorker' in navigator)) return;
-
-            const assetUrls = [
-                location.href,
-                'https://cdn.tailwindcss.com',
-                'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
-                'https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap',
-                'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js'
-            ];
-
-            const swCode = `
-                const CACHE_NAME = 'clix-showroom-offline-v1';
-                const PRECACHE_URLS = ${JSON.stringify(assetUrls)};
-
-                self.addEventListener('install', (event) => {
-                    event.waitUntil(
-                        caches.open(CACHE_NAME).then(async (cache) => {
-                            await Promise.allSettled(
-                                PRECACHE_URLS.map((url) =>
-                                    fetch(new Request(url, { mode: 'cors', cache: 'reload' }))
-                                        .then((res) => {
-                                            if (res && (res.ok || res.type === 'opaque')) {
-                                                return cache.put(url, res);
-                                            }
-                                        })
-                                        .catch(() => null)
-                                )
-                            );
-                        }).then(() => self.skipWaiting())
-                    );
-                });
-
-                self.addEventListener('activate', (event) => {
-                    event.waitUntil(
-                        caches.keys().then((keys) =>
-                            Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-                        ).then(() => self.clients.claim())
-                    );
-                });
-
-                self.addEventListener('fetch', (event) => {
-                    const req = event.request;
-                    if (req.method !== 'GET') return;
-                    const url = new URL(req.url);
-
-                    if (url.hostname.includes('firebaseio.com') || url.pathname.endsWith('.json')) {
-                        return;
-                    }
-
-                    if (req.mode === 'navigate') {
-                        event.respondWith(
-                            fetch(req)
-                                .then((res) => {
-                                    if (res && res.ok) {
-                                        const copy = res.clone();
-                                        caches.open(CACHE_NAME).then((c) => c.put(req, copy));
-                                    }
-                                    return res;
-                                })
-                                .catch(() => caches.match(req).then((cached) => cached || caches.match(self.registration.scope)))
-                        );
-                        return;
-                    }
-
-                    event.respondWith(
-                        caches.match(req).then((cached) => {
-                            const networkFetch = fetch(req)
-                                .then((res) => {
-                                    if (res && (res.ok || res.type === 'opaque')) {
-                                        const copy = res.clone();
-                                        caches.open(CACHE_NAME).then((c) => c.put(req, copy));
-                                    }
-                                    return res;
-                                })
-                                .catch(() => cached);
-                            return cached || networkFetch;
-                        })
-                    );
-                });
-            `;
-
-            try {
-                const blob = new Blob([swCode], { type: 'application/javascript' });
-                const swUrl = URL.createObjectURL(blob);
-                navigator.serviceWorker.register(swUrl)
-                    .then((reg) => {
-                        if (reg.active) {
-                            reg.active.postMessage({ type: 'CACHE_ASSETS', urls: assetUrls });
-                        }
-                        if ('caches' in window) {
-                            caches.open('clix-showroom-offline-v1').then((cache) => {
-                                cache.add(new Request(location.href, { cache: 'reload' })).catch(() => {});
-                            });
-                        }
-                        setTimeout(() => URL.revokeObjectURL(swUrl), 10000);
-                    })
-                    .catch(() => {});
-            } catch (e) {}
-        }
-
         const initialData = {
             lastUpdated: 0,
             adminPin: "1234",
@@ -452,6 +350,10 @@
         const CLOUD_DB_PATH = '/clix_showroom.json';
         const CLOUD_STORAGE_KEY = 'clix_direct_cloud_sync_master_db';
 
+        function isOnlineNow() {
+            return typeof navigator !== 'undefined' ? navigator.onLine !== false : true;
+        }
+
         function getCloudUrl() {
             try {
                 const q = new URLSearchParams(location.search).get('db');
@@ -477,7 +379,25 @@
             return d;
         }
 
-        let appData = normalizeData(JSON.parse(localStorage.getItem(CLOUD_STORAGE_KEY))) || JSON.parse(JSON.stringify(initialData));
+        function loadLocalMasterData() {
+            try {
+                const raw = localStorage.getItem(CLOUD_STORAGE_KEY);
+                if (raw) {
+                    const parsed = normalizeData(JSON.parse(raw));
+                    if (parsed && parsed.brands.length > 0) return parsed;
+                }
+            } catch (e) {}
+            return JSON.parse(JSON.stringify(initialData));
+        }
+
+        function saveLocalMasterData(dataObj) {
+            try {
+                localStorage.setItem(CLOUD_STORAGE_KEY, JSON.stringify(dataObj));
+            } catch (e) {}
+        }
+
+        let appData = loadLocalMasterData();
+        saveLocalMasterData(appData);
 
         let selectedBrandId = localStorage.getItem('clix_selected_brand') || appData.brands[0]?.id || 'samsung';
         let displayedSkuPerBrand = JSON.parse(localStorage.getItem('clix_displayed_skus')) || {};
@@ -598,18 +518,13 @@
             const statusText = document.getElementById('syncStatusText');
             if (!indicator || !statusText) return;
 
-            const isOffline = (typeof navigator !== 'undefined' && navigator.onLine === false);
-            statusText.innerText = isOffline ? 'وضع أوفلاين (بيانات محفوظة)' : text;
-
-            if (isOffline) {
-                indicator.className = "bg-slate-800/90 text-amber-300 border border-amber-500/40 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5";
-                indicator.querySelector('i').className = "fa-solid fa-wifi-slash text-amber-400";
-                return;
-            }
-
+            statusText.innerText = text;
             if (status === 'syncing') {
                 indicator.className = "bg-amber-950/80 text-amber-300 border border-amber-500/40 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5";
                 indicator.querySelector('i').className = "fa-solid fa-rotate fa-spin text-amber-400";
+            } else if (status === 'offline') {
+                indicator.className = "bg-slate-800/90 text-amber-300 border border-amber-500/40 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5";
+                indicator.querySelector('i').className = "fa-solid fa-wifi text-amber-400";
             } else if (status === 'error') {
                 indicator.className = "bg-red-950/80 text-red-300 border border-red-500/40 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5";
                 indicator.querySelector('i').className = "fa-solid fa-triangle-exclamation text-red-400";
@@ -623,15 +538,15 @@
 
         function pushToCloudMaster() {
             appData.lastUpdated = Math.max(Date.now(), (appData.lastUpdated || 0) + 1);
-            try { localStorage.setItem(CLOUD_STORAGE_KEY, JSON.stringify(appData)); } catch (e) {}
+            saveLocalMasterData(appData);
 
             if (!getCloudUrl()) {
-                updateSyncBadge('ok', 'محلي فقط (الربط السحابي غير مفعّل)');
+                updateSyncBadge('ok', 'محلي (يعمل بدون إنترنت)');
                 return;
             }
-            if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+            if (!isOnlineNow()) {
                 pushPending = true;
-                updateSyncBadge('error', 'وضع أوفلاين (سيُرسل عند عودة الشبكة)');
+                updateSyncBadge('offline', 'بدون إنترنت - محفوظ محلياً');
                 return;
             }
             updateSyncBadge('syncing', 'جاري التعميم المباشر...');
@@ -641,23 +556,35 @@
 
         async function flushPush() {
             if (pushInFlight) return;
+            if (!isOnlineNow()) {
+                updateSyncBadge('offline', 'بدون إنترنت - محفوظ محلياً');
+                return;
+            }
             pushInFlight = true;
             clearTimeout(retryTimer);
             try {
-                while (pushPending) {
+                while (pushPending && isOnlineNow()) {
                     pushPending = false;
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 5000);
                     const res = await fetch(getCloudUrl() + CLOUD_DB_PATH, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(appData)
+                        body: JSON.stringify(appData),
+                        signal: controller.signal
                     });
+                    clearTimeout(timeoutId);
                     if (!res.ok) throw new Error('HTTP ' + res.status);
                 }
-                updateSyncBadge('ok', 'متصل بالسحابة المركزية');
+                if (isOnlineNow()) updateSyncBadge('ok', 'متصل بالسحابة المركزية');
             } catch (err) {
                 pushPending = true;
-                updateSyncBadge('error', 'تعذر الإرسال - إعادة المحاولة...');
-                retryTimer = setTimeout(flushPush, 4000);
+                if (!isOnlineNow()) {
+                    updateSyncBadge('offline', 'بدون إنترنت - محفوظ محلياً');
+                } else {
+                    updateSyncBadge('error', 'وضع محلي مؤقت - إعادة المحاولة...');
+                    retryTimer = setTimeout(flushPush, 6000);
+                }
             } finally {
                 pushInFlight = false;
             }
@@ -665,12 +592,12 @@
 
         function applyRemoteData(raw, force) {
             const parsed = normalizeData(raw);
-            if (!parsed) return false;
+            if (!parsed || !parsed.brands.length) return false;
             if (!force && parsed.lastUpdated <= (appData.lastUpdated || 0)) return false;
             if (force && JSON.stringify(parsed) === JSON.stringify(appData)) return false;
 
             appData = parsed;
-            try { localStorage.setItem(CLOUD_STORAGE_KEY, JSON.stringify(appData)); } catch (e) {}
+            saveLocalMasterData(appData);
 
             if (!appData.brands.find(b => b.id === selectedBrandId)) {
                 selectedBrandId = appData.brands[0]?.id || 'samsung';
@@ -706,31 +633,42 @@
         }
 
         async function pullFromCloudNow() {
+            if (!isOnlineNow()) {
+                updateSyncBadge('offline', 'بدون إنترنت - يعمل محلياً');
+                return;
+            }
             try {
                 if (getCloudUrl()) {
-                    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-                        updateSyncBadge('error', 'وضع أوفلاين - يعمل بالبيانات المحلية');
-                        return;
-                    }
-                    const res = await fetch(getCloudUrl() + CLOUD_DB_PATH + '?_=' + Date.now(), { cache: 'no-store' });
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 5000);
+                    const res = await fetch(getCloudUrl() + CLOUD_DB_PATH + '?_=' + Date.now(), {
+                        cache: 'no-store',
+                        signal: controller.signal
+                    });
+                    clearTimeout(timeoutId);
                     if (!res.ok) throw new Error('HTTP ' + res.status);
                     handleCloudSnapshot(await res.json());
-                    if (!pushInFlight && !pushPending) updateSyncBadge('ok', 'متصل بالسحابة المركزية');
+                    if (!pushInFlight && !pushPending && isOnlineNow()) updateSyncBadge('ok', 'متصل بالسحابة المركزية');
                 } else {
                     const cloudDataStr = localStorage.getItem(CLOUD_STORAGE_KEY);
                     if (cloudDataStr) applyRemoteData(JSON.parse(cloudDataStr), false);
                 }
             } catch (err) {
-                if (getCloudUrl()) updateSyncBadge('error', 'انقطاع الاتصال - يعمل بآخر بيانات محفوظة');
+                if (!isOnlineNow()) {
+                    updateSyncBadge('offline', 'بدون إنترنت - يعمل محلياً');
+                } else if (getCloudUrl()) {
+                    updateSyncBadge('offline', 'يعمل بالبيانات المحفوظة محلياً');
+                }
             }
         }
 
         let cloudStream = null, streamAlive = false;
         function startCloudStream() {
-            if (!getCloudUrl() || typeof EventSource === 'undefined') return;
-            if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+            if (!getCloudUrl() || typeof EventSource === 'undefined' || !isOnlineNow()) return;
             try {
-                if (cloudStream) cloudStream.close();
+                if (cloudStream) {
+                    try { cloudStream.close(); } catch (e) {}
+                }
                 cloudStream = new EventSource(getCloudUrl() + CLOUD_DB_PATH);
                 cloudStream.onopen = () => { streamAlive = true; };
                 cloudStream.addEventListener('put', (ev) => {
@@ -743,39 +681,55 @@
                 cloudStream.addEventListener('patch', () => pullFromCloudNow());
                 cloudStream.onerror = () => {
                     streamAlive = false;
-                    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+                    if (!isOnlineNow()) {
                         try { cloudStream.close(); } catch (e) {}
+                        updateSyncBadge('offline', 'بدون إنترنت - يعمل محلياً');
                         return;
                     }
-                    if (cloudStream && cloudStream.readyState === 2) setTimeout(startCloudStream, 5000);
+                    if (cloudStream && cloudStream.readyState === 2) setTimeout(startCloudStream, 7000);
                 };
             } catch (e) { streamAlive = false; }
         }
 
-        function initCloudSync() {
-            window.addEventListener('offline', () => {
-                streamAlive = false;
-                try { if (cloudStream) cloudStream.close(); } catch (e) {}
-                updateSyncBadge('error', 'وضع أوفلاين - يعمل بالبيانات المحلية');
-            });
+        function handleOfflineEvent() {
+            streamAlive = false;
+            if (cloudStream) {
+                try { cloudStream.close(); } catch (e) {}
+            }
+            updateSyncBadge('offline', 'بدون إنترنت - يعمل محلياً');
+            enableFallbackAnimation();
+        }
 
-            if (getCloudUrl()) {
+        function handleOnlineEvent() {
+            updateSyncBadge('syncing', 'عاد الاتصال - جاري المزامنة...');
+            pullFromCloudNow();
+            startCloudStream();
+            if (pushPending) flushPush();
+            const vid = document.getElementById('demoVideo');
+            if (vid && vid.classList.contains('hidden')) {
+                vid.classList.remove('hidden');
+                const canvas = document.getElementById('fallbackCanvas');
+                if (canvas) canvas.classList.add('hidden');
+                vid.load();
+                vid.play().catch(() => enableFallbackAnimation());
+            }
+        }
+
+        function initCloudSync() {
+            window.addEventListener('offline', handleOfflineEvent);
+            window.addEventListener('online', handleOnlineEvent);
+
+            if (!isOnlineNow()) {
+                handleOfflineEvent();
+            } else if (getCloudUrl()) {
                 updateSyncBadge('syncing', 'جاري الاتصال بالسحابة...');
                 pullFromCloudNow();
                 startCloudStream();
-                setInterval(() => {
-                    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-                        updateSyncBadge('error', 'وضع أوفلاين - يعمل بالبيانات المحلية');
-                        return;
-                    }
-                    if (!streamAlive) pullFromCloudNow();
-                    if (pushPending) flushPush();
-                }, 15000);
-                window.addEventListener('online', () => { pullFromCloudNow(); startCloudStream(); if (pushPending) flushPush(); });
-                document.addEventListener('visibilitychange', () => { if (!document.hidden) pullFromCloudNow(); });
+                setInterval(() => { if (isOnlineNow() && !streamAlive) pullFromCloudNow(); }, 20000);
+                document.addEventListener('visibilitychange', () => { if (!document.hidden && isOnlineNow()) pullFromCloudNow(); });
             } else {
-                updateSyncBadge('ok', 'محلي فقط (الربط السحابي غير مفعّل)');
-                setInterval(pullFromCloudNow, 3000);
+                updateSyncBadge('ok', 'محلي (يعمل بدون إنترنت)');
+                setInterval(pullFromCloudNow, 4000);
                 window.addEventListener('storage', (e) => {
                     if (e.key === CLOUD_STORAGE_KEY && e.newValue) pullFromCloudNow();
                 });
@@ -816,7 +770,6 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            registerOfflineServiceWorker();
             setupReadingTextAnimation();
             renderShowroomDisplay();
             populateAdminBrandSelect();
@@ -841,9 +794,16 @@
             startContinuousCycle();
             
             const vid = document.getElementById('demoVideo');
-            if(vid) {
+            if (!isOnlineNow()) {
+                enableFallbackAnimation();
+            } else if (vid) {
                 vid.muted = true;
                 vid.play().catch(() => enableFallbackAnimation());
+                setTimeout(() => {
+                    if (vid.readyState === 0 && !isOnlineNow()) {
+                        enableFallbackAnimation();
+                    }
+                }, 4000);
             }
 
             setTimeout(() => {
@@ -1198,9 +1158,10 @@
             const vid = document.getElementById('demoVideo');
             const icon = document.getElementById('audioIcon');
             const text = document.getElementById('audioText');
+            if (!vid || vid.classList.contains('hidden')) return;
             if (vid.muted) {
                 vid.muted = false;
-                vid.play();
+                vid.play().catch(() => enableFallbackAnimation());
                 icon.className = "fa-solid fa-volume-high text-emerald-400";
                 text.innerText = "كتم الصوت";
             } else {
@@ -1282,14 +1243,6 @@
             return '';
         }
 
-        function hasRowKey(row, keys) {
-            const lowerMap = {};
-            Object.keys(row || {}).forEach(col => {
-                lowerMap[col.toString().trim().toLowerCase()] = row[col];
-            });
-            return keys.some(k => k in row || k.toString().trim().toLowerCase() in lowerMap);
-        }
-
         function normalizeSizeValue(rawSize) {
             const cleaned = (rawSize || '').toString().replace(/["'“”]/g, '').replace(/بوصة|inch/gi, '').trim();
             if (/^0+\d+$/.test(cleaned)) {
@@ -1304,13 +1257,10 @@
 
         function processParsedCsvRows(data, inputEl) {
             let updatedCount = 0;
-            const badgeKeys = ['promoBadge', 'promo_badge', 'badge', 'الوسام', 'وسام الترويج', 'العرض', 'وسام العرض'];
 
             data.forEach(row => {
                 const skuVal = pickRowValue(row, ['sku', 'SKU', 'رقم SKU']);
                 const sizeVal = normalizeSizeValue(pickRowValue(row, ['size', 'CSIZE', 'csize', 'المقاس', 'المقاس (بوصة)', 'inch']));
-                const hasBadgeCol = hasRowKey(row, badgeKeys);
-                const promoBadgeVal = pickRowValue(row, badgeKeys);
                 const promoPriceVal = pickRowValue(row, ['promo_price', 'price', 'Price', 'السعر المخفض', 'السعر', 'السعر الحالي']);
                 const originalPriceVal = pickRowValue(row, ['original_price', 'oldPrice', 'السعر الاصلي', 'السعر الأصلي', 'السعر السابق']);
                 const specsVal = pickRowValue(row, ['specsAr', 'specs', 'المواصفات', 'المواصفات التفصيلية']);
@@ -1325,7 +1275,6 @@
                         appData.tvModels[brandKey].forEach(tv => {
                             if (tv.sku && tv.sku.toString().trim() === skuVal) {
                                 if (sizeVal) tv.size = sizeVal;
-                                if (hasBadgeCol) tv.promoBadge = promoBadgeVal;
                                 if (promoPriceVal) tv.price = promoPriceVal;
                                 if (originalPriceVal) tv.oldPrice = originalPriceVal;
                                 if (specsVal) tv.specsAr = specsVal;
@@ -1348,7 +1297,7 @@
                 if (currentInspectedSku && !document.getElementById('specsFullscreenModal').classList.contains('hidden')) {
                     renderSpecsFullscreenModal(currentInspectedSku);
                 }
-                alert(`تم بنجاح تحديث وتعميم بيانات (${updatedCount}) شاشة فوراً على جميع الشاشات!`);
+                alert(`تم بنجاح تحديث وتعميم بيانات (${updatedCount}) شاشة فوراً وحفظها محلياً!`);
             } else {
                 alert('لم يتم العثور على أرقام SKU مطابقة في الملف المرفوع.');
             }
@@ -1387,27 +1336,43 @@
             });
         }
 
+        function handleVideoNetworkIssue() {
+            if (!isOnlineNow()) {
+                enableFallbackAnimation();
+            }
+        }
+
+        let fallbackAnimStarted = false;
         function enableFallbackAnimation() {
             const vid = document.getElementById('demoVideo');
             const canvas = document.getElementById('fallbackCanvas');
-            if(vid) vid.classList.add('hidden');
-            if(canvas) {
+            if (vid) {
+                try { vid.pause(); } catch (e) {}
+                vid.classList.add('hidden');
+            }
+            if (canvas) {
                 canvas.classList.remove('hidden');
+                if (fallbackAnimStarted) return;
+                fallbackAnimStarted = true;
                 const ctx = canvas.getContext('2d');
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
+                function resizeCanvas() {
+                    canvas.width = window.innerWidth || 1280;
+                    canvas.height = window.innerHeight || 720;
+                }
+                resizeCanvas();
+                window.addEventListener('resize', resizeCanvas);
                 let step = 0;
                 function draw() {
-                    ctx.fillStyle = 'rgba(15, 23, 42, 0.2)';
+                    ctx.fillStyle = 'rgba(15, 23, 42, 0.22)';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    const x = canvas.width/2 + Math.sin(step) * 300;
-                    const y = canvas.height/2 + Math.cos(step) * 200;
-                    const grad = ctx.createRadialGradient(x, y, 10, x, y, 400);
+                    const x = canvas.width / 2 + Math.sin(step) * Math.min(300, canvas.width * 0.25);
+                    const y = canvas.height / 2 + Math.cos(step) * Math.min(200, canvas.height * 0.25);
+                    const grad = ctx.createRadialGradient(x, y, 10, x, y, 420);
                     grad.addColorStop(0, '#2563eb');
                     grad.addColorStop(1, 'transparent');
                     ctx.fillStyle = grad;
                     ctx.beginPath();
-                    ctx.arc(x, y, 400, 0, Math.PI * 2);
+                    ctx.arc(x, y, 420, 0, Math.PI * 2);
                     ctx.fill();
                     step += 0.02;
                     requestAnimationFrame(draw);
@@ -1520,7 +1485,7 @@
                 appData.brandPin = newPin;
                 pushToCloudMaster();
                 document.getElementById('newBrandPinInput').value = '';
-                alert("تم تحديث وتعميم رمز البائع فوراً!");
+                alert("تم تحديث وحفظ رمز البائع فوراً!");
             } else {
                 alert("الرجاء إدخال رمز مكون من 4 خانات على الأقل.");
             }
@@ -1532,7 +1497,7 @@
                 appData.adminPin = newPin;
                 pushToCloudMaster();
                 document.getElementById('newAdminPinInput').value = '';
-                alert("تم تحديث وتعميم رمز المشرف فوراً!");
+                alert("تم تحديث وحفظ رمز المشرف فوراً!");
             } else {
                 alert("الرجاء إدخال رمز مكون من 4 خانات على الأقل.");
             }
@@ -1697,7 +1662,7 @@
                 document.getElementById('adminBrandSelect').value = brandId;
                 loadAdminBrandData();
                 renderShowroomDisplay();
-                alert(`تمت إضافة وتعميم ماركة "${nameAr}" فوراً!`);
+                alert(`تمت إضافة وحفظ ماركة "${nameAr}" فوراً!`);
             }
         }
 
