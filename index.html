@@ -67,7 +67,7 @@
 </head>
 <body class="bg-slate-950 text-white h-screen overflow-hidden flex flex-col justify-between select-none">
 
-    <video id="demoVideo" autoplay loop muted playsinline class="fullscreen-bg" onerror="enableFallbackAnimation()" onstalled="handleVideoNetworkIssue()" onabort="handleVideoNetworkIssue()">
+    <video id="demoVideo" autoplay loop muted playsinline class="fullscreen-bg" onerror="enableFallbackAnimation()" onstalled="handleVideoNetworkIssue()" onabort="handleVideoNetworkIssue()" onwaiting="handleVideoNetworkIssue()">
         <source src="https://vjs.zencdn.net/v/oceans.mp4" type="video/mp4">
     </video>
 
@@ -214,10 +214,10 @@
             <!-- حالة المزامنة التلقائية -->
             <div class="bg-gradient-to-r from-emerald-950/60 to-slate-900 border border-emerald-500/50 p-4 rounded-xl mb-6 shadow-lg">
                 <h4 class="font-bold text-emerald-300 text-sm mb-1.5 flex items-center gap-2">
-                    <i class="fa-solid fa-bolt text-emerald-400"></i> التحديث التلقائي المباشر مفعل بنجاح
+                    <i class="fa-solid fa-bolt text-emerald-400"></i> التحديث التلقائي المباشر وحفظ الأوفلاين مفعل بنجاح
                 </h4>
                 <p class="text-[11px] text-slate-300">
-                    جميع شاشات التلفزيون المتصلة بهذا الرابط متزامنة سحابياً بشكل كامل مع حفظ تلقائي محلي لضمان استمرار العمل حتى عند انقطاع الإنترنت.
+                    جميع شاشات التلفزيون المتصلة بهذا الرابط متزامنة سحابياً ومحمية بحفظ محلي تلقائي وخلفية بديلة لضمان استمرار العرض دون توقف عند انقطاع الإنترنت.
                 </p>
             </div>
 
@@ -301,6 +301,52 @@
     </div>
 
     <script>
+        function registerOfflineServiceWorker() {
+            if (!('serviceWorker' in navigator)) return;
+            if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') return;
+            try {
+                const swCode = `
+                    const CACHE_NAME = 'clix-showroom-offline-v1';
+                    self.addEventListener('install', (event) => {
+                        event.waitUntil(
+                            caches.open(CACHE_NAME).then((cache) => {
+                                return cache.addAll([self.location.href]).catch(() => {});
+                            }).then(() => self.skipWaiting())
+                        );
+                    });
+                    self.addEventListener('activate', (event) => {
+                        event.waitUntil(
+                            caches.keys().then((keys) => Promise.all(
+                                keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
+                            )).then(() => self.clients.claim())
+                        );
+                    });
+                    self.addEventListener('fetch', (event) => {
+                        const req = event.request;
+                        if (req.method !== 'GET') return;
+                        const url = req.url || '';
+                        if (url.includes('firebaseio.com') || url.endsWith('.mp4')) return;
+                        event.respondWith(
+                            caches.match(req).then((cached) => {
+                                const networkFetch = fetch(req).then((res) => {
+                                    if (res && res.status === 200 && (res.type === 'basic' || res.type === 'cors' || res.type === 'opaque')) {
+                                        const copy = res.clone();
+                                        caches.open(CACHE_NAME).then((cache) => cache.put(req, copy)).catch(() => {});
+                                    }
+                                    return res;
+                                }).catch(() => cached || new Response('', { status: 200 }));
+                                return cached || networkFetch;
+                            })
+                        );
+                    });
+                `;
+                const blob = new Blob([swCode], { type: 'application/javascript' });
+                const swUrl = URL.createObjectURL(blob);
+                navigator.serviceWorker.register(swUrl).catch(() => {});
+            } catch (e) {}
+        }
+        registerOfflineServiceWorker();
+
         const initialData = {
             lastUpdated: 0,
             adminPin: "1234",
@@ -565,15 +611,15 @@
             try {
                 while (pushPending && isOnlineNow()) {
                     pushPending = false;
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 5000);
+                    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+                    const timeoutId = controller ? setTimeout(() => controller.abort(), 5000) : null;
                     const res = await fetch(getCloudUrl() + CLOUD_DB_PATH, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(appData),
-                        signal: controller.signal
+                        signal: controller ? controller.signal : undefined
                     });
-                    clearTimeout(timeoutId);
+                    if (timeoutId) clearTimeout(timeoutId);
                     if (!res.ok) throw new Error('HTTP ' + res.status);
                 }
                 if (isOnlineNow()) updateSyncBadge('ok', 'متصل بالسحابة المركزية');
@@ -639,13 +685,13 @@
             }
             try {
                 if (getCloudUrl()) {
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 5000);
+                    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+                    const timeoutId = controller ? setTimeout(() => controller.abort(), 5000) : null;
                     const res = await fetch(getCloudUrl() + CLOUD_DB_PATH + '?_=' + Date.now(), {
                         cache: 'no-store',
-                        signal: controller.signal
+                        signal: controller ? controller.signal : undefined
                     });
-                    clearTimeout(timeoutId);
+                    if (timeoutId) clearTimeout(timeoutId);
                     if (!res.ok) throw new Error('HTTP ' + res.status);
                     handleCloudSnapshot(await res.json());
                     if (!pushInFlight && !pushPending && isOnlineNow()) updateSyncBadge('ok', 'متصل بالسحابة المركزية');
@@ -698,6 +744,7 @@
             }
             updateSyncBadge('offline', 'بدون إنترنت - يعمل محلياً');
             enableFallbackAnimation();
+            renderShowroomDisplay();
         }
 
         function handleOnlineEvent() {
@@ -800,10 +847,10 @@
                 vid.muted = true;
                 vid.play().catch(() => enableFallbackAnimation());
                 setTimeout(() => {
-                    if (vid.readyState === 0 && !isOnlineNow()) {
+                    if (!isOnlineNow() || vid.readyState < 2 || vid.paused) {
                         enableFallbackAnimation();
                     }
-                }, 4000);
+                }, 3500);
             }
 
             setTimeout(() => {
@@ -1337,7 +1384,8 @@
         }
 
         function handleVideoNetworkIssue() {
-            if (!isOnlineNow()) {
+            const vid = document.getElementById('demoVideo');
+            if (!isOnlineNow() || !vid || vid.readyState < 2) {
                 enableFallbackAnimation();
             }
         }
