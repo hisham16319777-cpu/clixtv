@@ -4,10 +4,96 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>معارض كليكس - عرض الشاشات الذكي الشامل</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script>
+    /* تحميل المكتبات الخارجية مع تخزينها محلياً: بعد أول تشغيل بالإنترنت تعمل الصفحة حتى لو بدأت بدون إنترنت */
+    (function () {
+        var PFX = 'clix_asset_v1_';
+        var ASSETS = [
+            { k: 'tw', t: 'js',  u: 'https://cdn.tailwindcss.com' },
+            { k: 'pp', t: 'js',  u: 'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js' },
+            { k: 'fa', t: 'css', u: 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css' },
+            { k: 'tj', t: 'css', u: 'https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap' }
+        ];
+        function lsGet(k) { try { return localStorage.getItem(PFX + k); } catch (e) { return null; } }
+        function lsSet(k, v) { try { localStorage.setItem(PFX + k, v); return true; } catch (e) { return false; } }
+        var missing = [];
+        ASSETS.forEach(function (a) {
+            var cached = lsGet(a.k);
+            if (cached) {
+                try {
+                    if (a.t === 'js') {
+                        var s = document.createElement('script');
+                        s.text = cached;
+                        document.head.appendChild(s);
+                    } else {
+                        var st = document.createElement('style');
+                        st.textContent = cached;
+                        document.head.appendChild(st);
+                    }
+                    return;
+                } catch (e) {}
+            }
+            missing.push(a);
+            if (a.t === 'js') document.write('<script src="' + a.u + '"><\/script>');
+            else document.write('<link rel="stylesheet" href="' + a.u + '">');
+        });
+
+        function fetchText(u) {
+            return fetch(u, { mode: 'cors' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); });
+        }
+        function toDataUri(u) {
+            return fetch(u, { mode: 'cors' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.blob(); })
+                .then(function (b) {
+                    return new Promise(function (res) {
+                        var fr = new FileReader();
+                        fr.onload = function () { res(fr.result); };
+                        fr.onerror = function () { res(null); };
+                        fr.readAsDataURL(b);
+                    });
+                });
+        }
+        async function inlineCssFonts(css, base) {
+            var re = /url\(\s*['"]?([^'")]+)['"]?\s*\)/g, m, urls = [];
+            while ((m = re.exec(css))) {
+                var raw = m[1];
+                if (/^data:/i.test(raw)) continue;
+                if (/\.(ttf|eot|woff)(\?|#|$)/i.test(raw) && !/woff2/i.test(raw)) continue; /* نكتفي بصيغة woff2 */
+                if (/fa-brands/i.test(raw)) continue;                                        /* أيقونات الماركات غير مستخدمة */
+                var abs; try { abs = new URL(raw, base).href; } catch (e) { continue; }
+                if (urls.indexOf(abs) === -1) urls.push(abs);
+            }
+            for (var i = 0; i < urls.length; i++) {
+                try {
+                    var data = await toDataUri(urls[i]);
+                    if (!data) continue;
+                    css = css.split(urls[i]).join(data);
+                } catch (e) {}
+            }
+            return css;
+        }
+        async function cacheAll() {
+            for (var i = 0; i < ASSETS.length; i++) {
+                var a = ASSETS[i];
+                if (lsGet(a.k)) continue;
+                try {
+                    var text = await fetchText(a.u);
+                    if (a.t === 'css') {
+                        /* حوّل الروابط النسبية إلى مطلقة أولاً ثم ضمّن الخطوط */
+                        text = text.replace(/url\(\s*['"]?(?!data:|https?:|\/\/)([^'")]+)['"]?\s*\)/g, function (all, rel) {
+                            try { return 'url(' + new URL(rel, a.u).href + ')'; } catch (e) { return all; }
+                        });
+                        text = await inlineCssFonts(text, a.u);
+                    }
+                    lsSet(a.k, text);
+                } catch (e) {}
+            }
+        }
+        window.addEventListener('load', function () {
+            setTimeout(function () { cacheAll(); }, 3000);
+            setInterval(function () { cacheAll(); }, 120000);
+        });
+    })();
+    </script>
     <style>
         body { font-family: 'Tajawal', sans-serif; background-color: #020617; color: #ffffff; }
         .glass-panel {
@@ -302,109 +388,110 @@
 
     <script>
         const VIDEO_URL = 'https://vjs.zencdn.net/v/oceans.mp4';
-        const OFFLINE_CACHE_NAME = 'clix-showroom-offline-v2';
+        const VIDEO_DB = 'clix_media_v1';
+        const VIDEO_STORE = 'files';
+        const VIDEO_KEY = 'main_video';
 
-        function registerOfflineServiceWorker() {
-            if (!('serviceWorker' in navigator)) return;
-            if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') return;
-            try {
-                const swCode = `
-                    const CACHE_NAME = '${OFFLINE_CACHE_NAME}';
-                    self.addEventListener('install', (event) => {
-                        event.waitUntil(
-                            caches.open(CACHE_NAME).then((cache) => {
-                                return cache.addAll([self.location.href]).catch(() => {});
-                            }).then(() => self.skipWaiting())
-                        );
-                    });
-                    self.addEventListener('activate', (event) => {
-                        event.waitUntil(
-                            caches.keys().then((keys) => Promise.all(
-                                keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
-                            )).then(() => self.clients.claim())
-                        );
-                    });
-                    self.addEventListener('fetch', (event) => {
-                        const req = event.request;
-                        if (req.method !== 'GET') return;
-                        const url = req.url || '';
-                        if (url.includes('firebaseio.com')) return;
-                        event.respondWith(
-                            caches.match(req).then((cached) => {
-                                if (cached) return cached;
-                                return fetch(req).then((res) => {
-                                    if (res && res.status === 200 && (res.type === 'basic' || res.type === 'cors' || res.type === 'opaque')) {
-                                        const copy = res.clone();
-                                        caches.open(CACHE_NAME).then((cache) => cache.put(req, copy)).catch(() => {});
-                                    }
-                                    return res;
-                                }).catch(() => cached || new Response('', { status: 200 }));
-                            })
-                        );
-                    });
-                `;
-                const blob = new Blob([swCode], { type: 'application/javascript' });
-                const swUrl = URL.createObjectURL(blob);
-                navigator.serviceWorker.register(swUrl).catch(() => {});
-            } catch (e) {}
+        /* ---- تخزين الفيديو كاملاً داخل IndexedDB ليعمل بدون إنترنت ---- */
+        function idbOpen() {
+            return new Promise((resolve, reject) => {
+                if (!window.indexedDB) return reject(new Error('no idb'));
+                const r = indexedDB.open(VIDEO_DB, 1);
+                r.onupgradeneeded = () => { r.result.createObjectStore(VIDEO_STORE); };
+                r.onsuccess = () => resolve(r.result);
+                r.onerror = () => reject(r.error);
+            });
         }
-        registerOfflineServiceWorker();
-
-        async function cacheVideoForOffline() {
-            if (!('caches' in window) || !isOnlineNow()) return;
-            try {
-                const cache = await caches.open(OFFLINE_CACHE_NAME);
-                const existing = await cache.match(VIDEO_URL);
-                if (!existing) {
-                    const res = await fetch(VIDEO_URL, { mode: 'cors' });
-                    if (res && res.ok) {
-                        await cache.put(VIDEO_URL, res);
-                    }
-                }
-            } catch (e) {}
+        async function idbGet(key) {
+            const db = await idbOpen();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(VIDEO_STORE, 'readonly');
+                const rq = tx.objectStore(VIDEO_STORE).get(key);
+                rq.onsuccess = () => resolve(rq.result);
+                rq.onerror = () => reject(rq.error);
+            });
+        }
+        async function idbPut(key, val) {
+            const db = await idbOpen();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(VIDEO_STORE, 'readwrite');
+                tx.objectStore(VIDEO_STORE).put(val, key);
+                tx.oncomplete = () => resolve(true);
+                tx.onerror = () => reject(tx.error);
+                tx.onabort = () => reject(tx.error);
+            });
         }
 
-        async function playVideoUsingCacheOrLive() {
+        let videoIsLocal = false;
+        let videoDownloading = false;
+        let localVideoObjectUrl = null;
+
+        function swapVideoSource(url) {
             const vid = document.getElementById('demoVideo');
             const sourceEl = document.getElementById('demoVideoSource');
             const canvas = document.getElementById('fallbackCanvas');
             if (!vid) return;
-
-            let usedCachedBlob = false;
-            if ('caches' in window) {
-                try {
-                    const cache = await caches.open(OFFLINE_CACHE_NAME);
-                    const cachedRes = await cache.match(VIDEO_URL);
-                    if (cachedRes) {
-                        const blob = await cachedRes.blob();
-                        if (blob && blob.size > 0) {
-                            const blobUrl = URL.createObjectURL(blob);
-                            if (vid.dataset.blobUrl) {
-                                try { URL.revokeObjectURL(vid.dataset.blobUrl); } catch (e) {}
-                            }
-                            vid.dataset.blobUrl = blobUrl;
-                            if (sourceEl) sourceEl.src = blobUrl;
-                            vid.src = blobUrl;
-                            usedCachedBlob = true;
-                        }
-                    }
-                } catch (e) {}
-            }
-
-            if (!usedCachedBlob && sourceEl && vid.src !== VIDEO_URL && !vid.src.startsWith('blob:')) {
-                sourceEl.src = VIDEO_URL;
-                vid.src = VIDEO_URL;
-            }
-
+            const t = vid.currentTime || 0;
+            if (localVideoObjectUrl) { try { URL.revokeObjectURL(localVideoObjectUrl); } catch (e) {} }
+            localVideoObjectUrl = url;
+            if (sourceEl) sourceEl.src = url;
+            vid.src = url;
+            vid.loop = true;
+            const onMeta = () => {
+                vid.removeEventListener('loadedmetadata', onMeta);
+                try { if (t && vid.duration && isFinite(vid.duration)) vid.currentTime = t % vid.duration; } catch (e) {}
+            };
+            vid.addEventListener('loadedmetadata', onMeta);
             if (canvas) canvas.classList.add('hidden');
             vid.classList.remove('hidden');
-            vid.loop = true;
-            vid.muted = true;
+            try { vid.load(); } catch (e) {}
+            const p = vid.play();
+            if (p && p.catch) p.catch(() => {});
+        }
+
+        async function useLocalVideo() {
+            if (videoIsLocal) return true;
             try {
-                vid.load();
-                await vid.play();
+                const rec = await idbGet(VIDEO_KEY);
+                if (rec && rec.blob && rec.blob.size > 0 && rec.url === VIDEO_URL) {
+                    swapVideoSource(URL.createObjectURL(rec.blob));
+                    videoIsLocal = true;
+                    return true;
+                }
+            } catch (e) {}
+            return false;
+        }
+
+        async function cacheVideoForOffline() {
+            if (videoIsLocal || videoDownloading) return;
+            videoDownloading = true;
+            try {
+                try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+                const res = await fetch(VIDEO_URL, { mode: 'cors' });
+                if (!res || !res.ok) throw new Error('video http');
+                const blob = await res.blob();
+                if (!blob || blob.size === 0) throw new Error('empty video');
+                await idbPut(VIDEO_KEY, { url: VIDEO_URL, blob: blob, savedAt: Date.now() });
+                await useLocalVideo();
             } catch (e) {
-                if (!usedCachedBlob) enableFallbackAnimation();
+                /* فشل التحميل (لا إنترنت أو CORS): نحاول لاحقاً، والعرض مستمر */
+            } finally {
+                videoDownloading = false;
+            }
+        }
+
+        /* تشغيل الفيديو: النسخة المحلية إن وجدت، وإلا المباشر. لا نعيد تحميل الفيديو أثناء تشغيله أبداً */
+        async function playVideoUsingCacheOrLive() {
+            const vid = document.getElementById('demoVideo');
+            const canvas = document.getElementById('fallbackCanvas');
+            if (!vid) return;
+            await useLocalVideo();
+            if (vid.paused || vid.ended) {
+                try {
+                    await vid.play();
+                    if (canvas) canvas.classList.add('hidden');
+                    vid.classList.remove('hidden');
+                } catch (e) {}
             }
         }
 
@@ -458,7 +545,7 @@
         const CLOUD_STORAGE_KEY = 'clix_direct_cloud_sync_master_db';
 
         function isOnlineNow() {
-            return typeof navigator !== 'undefined' ? navigator.onLine !== false : true;
+            return true; /* navigator.onLine غير موثوق على شاشات webOS؛ نعتمد على نجاح/فشل الطلبات نفسها */
         }
 
         function getCloudUrl() {
@@ -804,8 +891,6 @@
                 try { cloudStream.close(); } catch (e) {}
             }
             updateSyncBadge('offline', 'بدون إنترنت - يعمل محلياً');
-            playVideoUsingCacheOrLive();
-            renderShowroomDisplay();
         }
 
         function handleOnlineEvent() {
@@ -898,16 +983,16 @@
 
             startContinuousCycle();
 
-            if (isOnlineNow()) {
-                cacheVideoForOffline();
+            (async () => {
                 const vid = document.getElementById('demoVideo');
+                await useLocalVideo();
                 if (vid) {
                     vid.muted = true;
                     vid.play().catch(() => {});
                 }
-            } else {
-                playVideoUsingCacheOrLive();
-            }
+                cacheVideoForOffline();
+            })();
+            setInterval(cacheVideoForOffline, 120000);
 
             setInterval(() => {
                 const vid = document.getElementById('demoVideo');
@@ -1447,21 +1532,24 @@
         }
 
         function handleVideoNetworkIssue() {
+            /* لا نعيد تحميل الفيديو (load) أبداً هنا؛ فقط نكمل التشغيل من المخزن المؤقت */
             const vid = document.getElementById('demoVideo');
-            if (!vid) return;
-            if (!isOnlineNow()) {
-                playVideoUsingCacheOrLive();
-            } else if (vid.paused) {
-                vid.play().catch(() => {});
-            }
+            if (vid && vid.paused) vid.play().catch(() => {});
         }
 
+        let videoErrorTimer = null;
         function handleVideoError() {
-            if (!isOnlineNow()) {
-                playVideoUsingCacheOrLive().catch(() => enableFallbackAnimation());
-            } else {
-                enableFallbackAnimation();
+            if (videoIsLocal) {
+                clearTimeout(videoErrorTimer);
+                videoErrorTimer = setTimeout(() => {
+                    const vid = document.getElementById('demoVideo');
+                    if (vid) { try { vid.load(); vid.play().catch(() => {}); } catch (e) {} }
+                }, 2000);
+                return;
             }
+            enableFallbackAnimation();
+            clearTimeout(videoErrorTimer);
+            videoErrorTimer = setTimeout(cacheVideoForOffline, 15000);
         }
 
         let fallbackAnimStarted = false;
