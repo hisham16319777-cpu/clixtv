@@ -67,8 +67,8 @@
 </head>
 <body class="bg-slate-950 text-white h-screen overflow-hidden flex flex-col justify-between select-none">
 
-    <video id="demoVideo" autoplay loop muted playsinline class="fullscreen-bg" onerror="enableFallbackAnimation()" onstalled="handleVideoNetworkIssue()" onabort="handleVideoNetworkIssue()" onwaiting="handleVideoNetworkIssue()">
-        <source src="https://vjs.zencdn.net/v/oceans.mp4" type="video/mp4">
+    <video id="demoVideo" autoplay loop muted playsinline preload="auto" class="fullscreen-bg" onerror="handleVideoError()" onstalled="handleVideoNetworkIssue()" onabort="handleVideoNetworkIssue()" onwaiting="handleVideoNetworkIssue()">
+        <source id="demoVideoSource" src="https://vjs.zencdn.net/v/oceans.mp4" type="video/mp4">
     </video>
 
     <canvas id="fallbackCanvas" class="fullscreen-bg hidden"></canvas>
@@ -214,10 +214,10 @@
             <!-- حالة المزامنة التلقائية -->
             <div class="bg-gradient-to-r from-emerald-950/60 to-slate-900 border border-emerald-500/50 p-4 rounded-xl mb-6 shadow-lg">
                 <h4 class="font-bold text-emerald-300 text-sm mb-1.5 flex items-center gap-2">
-                    <i class="fa-solid fa-bolt text-emerald-400"></i> التحديث التلقائي المباشر وحفظ الأوفلاين مفعل بنجاح
+                    <i class="fa-solid fa-bolt text-emerald-400"></i> التحديث التلقائي المباشر وتشغيل الفيديو أوفلاين مفعل بنجاح
                 </h4>
                 <p class="text-[11px] text-slate-300">
-                    جميع شاشات التلفزيون المتصلة بهذا الرابط متزامنة سحابياً ومحمية بحفظ محلي تلقائي وخلفية بديلة لضمان استمرار العرض دون توقف عند انقطاع الإنترنت.
+                    جميع شاشات التلفزيون المتصلة بهذا الرابط متزامنة سحابياً مع حفظ تلقائي محلي وتخزين الفيديو في الكاش لضمان استمرار العرض والفيديو حتى عند انقطاع الإنترنت.
                 </p>
             </div>
 
@@ -301,12 +301,15 @@
     </div>
 
     <script>
+        const VIDEO_URL = 'https://vjs.zencdn.net/v/oceans.mp4';
+        const OFFLINE_CACHE_NAME = 'clix-showroom-offline-v2';
+
         function registerOfflineServiceWorker() {
             if (!('serviceWorker' in navigator)) return;
             if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') return;
             try {
                 const swCode = `
-                    const CACHE_NAME = 'clix-showroom-offline-v1';
+                    const CACHE_NAME = '${OFFLINE_CACHE_NAME}';
                     self.addEventListener('install', (event) => {
                         event.waitUntil(
                             caches.open(CACHE_NAME).then((cache) => {
@@ -325,17 +328,17 @@
                         const req = event.request;
                         if (req.method !== 'GET') return;
                         const url = req.url || '';
-                        if (url.includes('firebaseio.com') || url.endsWith('.mp4')) return;
+                        if (url.includes('firebaseio.com')) return;
                         event.respondWith(
                             caches.match(req).then((cached) => {
-                                const networkFetch = fetch(req).then((res) => {
+                                if (cached) return cached;
+                                return fetch(req).then((res) => {
                                     if (res && res.status === 200 && (res.type === 'basic' || res.type === 'cors' || res.type === 'opaque')) {
                                         const copy = res.clone();
                                         caches.open(CACHE_NAME).then((cache) => cache.put(req, copy)).catch(() => {});
                                     }
                                     return res;
                                 }).catch(() => cached || new Response('', { status: 200 }));
-                                return cached || networkFetch;
                             })
                         );
                     });
@@ -346,6 +349,64 @@
             } catch (e) {}
         }
         registerOfflineServiceWorker();
+
+        async function cacheVideoForOffline() {
+            if (!('caches' in window) || !isOnlineNow()) return;
+            try {
+                const cache = await caches.open(OFFLINE_CACHE_NAME);
+                const existing = await cache.match(VIDEO_URL);
+                if (!existing) {
+                    const res = await fetch(VIDEO_URL, { mode: 'cors' });
+                    if (res && res.ok) {
+                        await cache.put(VIDEO_URL, res);
+                    }
+                }
+            } catch (e) {}
+        }
+
+        async function playVideoUsingCacheOrLive() {
+            const vid = document.getElementById('demoVideo');
+            const sourceEl = document.getElementById('demoVideoSource');
+            const canvas = document.getElementById('fallbackCanvas');
+            if (!vid) return;
+
+            let usedCachedBlob = false;
+            if ('caches' in window) {
+                try {
+                    const cache = await caches.open(OFFLINE_CACHE_NAME);
+                    const cachedRes = await cache.match(VIDEO_URL);
+                    if (cachedRes) {
+                        const blob = await cachedRes.blob();
+                        if (blob && blob.size > 0) {
+                            const blobUrl = URL.createObjectURL(blob);
+                            if (vid.dataset.blobUrl) {
+                                try { URL.revokeObjectURL(vid.dataset.blobUrl); } catch (e) {}
+                            }
+                            vid.dataset.blobUrl = blobUrl;
+                            if (sourceEl) sourceEl.src = blobUrl;
+                            vid.src = blobUrl;
+                            usedCachedBlob = true;
+                        }
+                    }
+                } catch (e) {}
+            }
+
+            if (!usedCachedBlob && sourceEl && vid.src !== VIDEO_URL && !vid.src.startsWith('blob:')) {
+                sourceEl.src = VIDEO_URL;
+                vid.src = VIDEO_URL;
+            }
+
+            if (canvas) canvas.classList.add('hidden');
+            vid.classList.remove('hidden');
+            vid.loop = true;
+            vid.muted = true;
+            try {
+                vid.load();
+                await vid.play();
+            } catch (e) {
+                if (!usedCachedBlob) enableFallbackAnimation();
+            }
+        }
 
         const initialData = {
             lastUpdated: 0,
@@ -743,7 +804,7 @@
                 try { cloudStream.close(); } catch (e) {}
             }
             updateSyncBadge('offline', 'بدون إنترنت - يعمل محلياً');
-            enableFallbackAnimation();
+            playVideoUsingCacheOrLive();
             renderShowroomDisplay();
         }
 
@@ -752,13 +813,10 @@
             pullFromCloudNow();
             startCloudStream();
             if (pushPending) flushPush();
+            cacheVideoForOffline();
             const vid = document.getElementById('demoVideo');
-            if (vid && vid.classList.contains('hidden')) {
-                vid.classList.remove('hidden');
-                const canvas = document.getElementById('fallbackCanvas');
-                if (canvas) canvas.classList.add('hidden');
-                vid.load();
-                vid.play().catch(() => enableFallbackAnimation());
+            if (vid && vid.paused) {
+                vid.play().catch(() => {});
             }
         }
 
@@ -839,19 +897,24 @@
             window.addEventListener('touchstart', triggerRemoteUI);
 
             startContinuousCycle();
-            
-            const vid = document.getElementById('demoVideo');
-            if (!isOnlineNow()) {
-                enableFallbackAnimation();
-            } else if (vid) {
-                vid.muted = true;
-                vid.play().catch(() => enableFallbackAnimation());
-                setTimeout(() => {
-                    if (!isOnlineNow() || vid.readyState < 2 || vid.paused) {
-                        enableFallbackAnimation();
-                    }
-                }, 3500);
+
+            if (isOnlineNow()) {
+                cacheVideoForOffline();
+                const vid = document.getElementById('demoVideo');
+                if (vid) {
+                    vid.muted = true;
+                    vid.play().catch(() => {});
+                }
+            } else {
+                playVideoUsingCacheOrLive();
             }
+
+            setInterval(() => {
+                const vid = document.getElementById('demoVideo');
+                if (vid && !vid.classList.contains('hidden') && vid.paused) {
+                    vid.play().catch(() => {});
+                }
+            }, 5000);
 
             setTimeout(() => {
                 const firstFocus = document.getElementById('brandSelectBtn');
@@ -1385,7 +1448,18 @@
 
         function handleVideoNetworkIssue() {
             const vid = document.getElementById('demoVideo');
-            if (!isOnlineNow() || !vid || vid.readyState < 2) {
+            if (!vid) return;
+            if (!isOnlineNow()) {
+                playVideoUsingCacheOrLive();
+            } else if (vid.paused) {
+                vid.play().catch(() => {});
+            }
+        }
+
+        function handleVideoError() {
+            if (!isOnlineNow()) {
+                playVideoUsingCacheOrLive().catch(() => enableFallbackAnimation());
+            } else {
                 enableFallbackAnimation();
             }
         }
