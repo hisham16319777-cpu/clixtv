@@ -128,7 +128,10 @@
             var head = 'الوضع: ' + mediaMode + (v ? (' | فيديو: t=' + Math.floor(v.currentTime || 0) + 's ready=' + v.readyState +
                        ' paused=' + v.paused + ' muted=' + v.muted +
                        ' err=' + (v.error ? v.error.code : '-') +
-                       ' blob=' + (typeof cachedBlobRef !== 'undefined' && !!cachedBlobRef))
+                       ' blob=' + (typeof cachedBlobRef !== 'undefined' && !!cachedBlobRef) +
+                       ' mode=' + (typeof currentLocalMode !== 'undefined' ? (currentLocalMode || 'remote') : '?') +
+                       ' sw=' + (typeof swActive !== 'undefined' && swActive) +
+                       ' mse=' + (typeof canUseMSE === 'function' && canUseMSE()))
                        : ' | فيديو: غير متوفر (وضع Canvas)');
             head += '\nذاكرة JS: ' + (heap() === null ? '؟' : heap() + 'MB') + ' | متصل(المتصفح): ' + navigator.onLine;
             var lines = readLog().slice(-22).map(function (r) { return hhmmss(r[0]) + '  ' + r[1]; });
@@ -481,8 +484,12 @@
         const SW_VIDEO_CACHE = 'clix-video-v1';
         let swActive = false;
         let swInitPromise = null;
-        let usingSwPlayback = false;
-        let swPlaybackDisabled = false;
+        // مسارات التشغيل المحلي بالترتيب: sw (رابط عادي عبر Service Worker) ← mse (MediaSource) ← blob
+        let currentLocalMode = null;
+        const localModeSkip = { sw: false, mse: false, blob: false };
+        const MSE_MIME = 'video/mp4; codecs="avc1.42C01E, mp4a.40.2"';
+        const OFFLINE_VIDEO_FILENAME = 'video_offline.mp4';
+        let mseState = null;
 
         function ensureSW() {
             if (swInitPromise) return swInitPromise;
@@ -534,6 +541,101 @@
                 const cache = await caches.open(SW_VIDEO_CACHE);
                 return !!(await cache.match(url, { ignoreSearch: true }));
             } catch (e) { return false; }
+        }
+
+        // ===== MediaSource: تغذية المشغّل من الذاكرة مباشرة (يعمل على webOS القديم حيث لا يعمل blob ولا Service Worker) =====
+        function canUseMSE() {
+            try { return !!(window.MediaSource && MediaSource.isTypeSupported && MediaSource.isTypeSupported(MSE_MIME)); } catch (e) { return false; }
+        }
+
+        function mseTeardown() {
+            if (!mseState) return;
+            const st = mseState;
+            mseState = null;
+            st.dead = true;
+            try { if (st.ms.readyState === 'open') st.ms.endOfStream(); } catch (e) {}
+            try { URL.revokeObjectURL(st.url); } catch (e) {}
+        }
+
+        function readBlobSlice(blob, start, end) {
+            return new Promise((resolve, reject) => {
+                const fr = new FileReader();
+                fr.onload = () => resolve(fr.result);
+                fr.onerror = () => reject(fr.error || new Error('FileReader'));
+                fr.readAsArrayBuffer(blob.slice(start, end));
+            });
+        }
+
+        function playBlobViaMSE(videoEl, blob) {
+            return new Promise((resolve) => {
+                mseTeardown();
+                let settled = false;
+                const finish = (ok) => { if (!settled) { settled = true; resolve(ok); } };
+                try {
+                    const ms = new MediaSource();
+                    const url = URL.createObjectURL(ms);
+                    const st = { ms: ms, url: url, dead: false, blob: blob };
+                    mseState = st;
+
+                    ms.addEventListener('sourceopen', async () => {
+                        if (st.dead || st.started) return;
+                        st.started = true;
+                        try {
+                            const sb = ms.addSourceBuffer(MSE_MIME);
+                            const waitIdle = () => new Promise((res, rej) => {
+                                if (!sb.updating) return res();
+                                const ok = () => { sb.removeEventListener('updateend', ok); sb.removeEventListener('error', bad); res(); };
+                                const bad = () => { sb.removeEventListener('updateend', ok); sb.removeEventListener('error', bad); rej(new Error('sourceBuffer error')); };
+                                sb.addEventListener('updateend', ok);
+                                sb.addEventListener('error', bad);
+                            });
+                            const CHUNK = 512 * 1024;
+                            let off = 0, first = true;
+                            while (off < blob.size && !st.dead) {
+                                const buf = await readBlobSlice(blob, off, Math.min(off + CHUNK, blob.size));
+                                let appended = false, tries = 0;
+                                while (!appended && !st.dead) {
+                                    try {
+                                        sb.appendBuffer(buf);
+                                        appended = true;
+                                    } catch (e) {
+                                        if (e && e.name === 'QuotaExceededError' && tries < 120) {
+                                            // الذاكرة ممتلئة: احذف ما تم عرضه وانتظر قليلاً ثم أعد المحاولة
+                                            tries++;
+                                            await waitIdle();
+                                            try {
+                                                const cut = Math.max(0, (videoEl.currentTime || 0) - 1);
+                                                if (cut > 0.5 && !sb.updating) sb.remove(0, cut);
+                                            } catch (e2) {}
+                                            await new Promise((r) => setTimeout(r, 500));
+                                        } else { throw e; }
+                                    }
+                                }
+                                await waitIdle();
+                                off += CHUNK;
+                                if (first) {
+                                    first = false;
+                                    finish(true);
+                                    try { videoEl.play().catch(() => {}); } catch (e) {}
+                                }
+                            }
+                            if (!st.dead && ms.readyState === 'open') { try { ms.endOfStream(); } catch (e) {} }
+                        } catch (e) {
+                            vlog('خطأ MediaSource: ' + ((e && (e.name || e.message)) || e));
+                            if (!settled) finish(false);
+                            else if (!st.dead) { try { videoEl.dispatchEvent(new Event('error')); } catch (e3) {} }
+                        }
+                    });
+
+                    videoEl.loop = false;
+                    videoEl.src = url;
+                    videoEl.load();
+                    setTimeout(() => { if (!settled) { vlog('انتهت مهلة MediaSource'); finish(false); } }, 8000);
+                } catch (e) {
+                    vlog('تعذر إنشاء MediaSource: ' + ((e && e.message) || e));
+                    finish(false);
+                }
+            });
         }
 
         async function swCacheClear() {
@@ -766,8 +868,8 @@
             if (!videoEl || !isValidVideoBlob(blob)) return false;
             showVideoBackground();
 
-            // المسار المفضّل: رابط عادي يخدمه sw.js من Cache Storage (يعمل على webOS أوفلاين)
-            if (!swPlaybackDisabled && (await ensureSW())) {
+            // المسار 1: رابط عادي يخدمه sw.js من Cache Storage
+            if (!localModeSkip.sw && (await ensureSW())) {
                 try {
                     const swUrl = resolveVideoUrl(currentVideoSourceUrl);
                     if (!(await swCacheHas(swUrl))) await swCachePut(swUrl, blob);
@@ -775,20 +877,41 @@
                         URL.revokeObjectURL(activeObjectUrl);
                         activeObjectUrl = null;
                     }
+                    mseTeardown();
                     usingLocalBlobNow = true;
-                    usingSwPlayback = true;
+                    currentLocalMode = 'sw';
+                    videoEl.loop = true;
                     videoEl.muted = !userWantsAudio;
                     videoEl.src = swUrl;
                     videoEl.load();
                     videoEl.play().catch(() => {});
+                    vlog('مسار التشغيل المحلي: Service Worker');
                     return true;
                 } catch (e) {
-                    usingSwPlayback = false;
+                    localModeSkip.sw = true;
                     vlog('تعذر التشغيل عبر Service Worker: ' + ((e && e.message) || e));
                 }
             }
 
-            usingSwPlayback = false;
+            // المسار 2: MediaSource (يتطلب ملف fragmented mp4 = video_offline.mp4)
+            if (!localModeSkip.mse && canUseMSE()) {
+                videoEl.muted = !userWantsAudio;
+                usingLocalBlobNow = true;
+                currentLocalMode = 'mse';
+                const okMse = await playBlobViaMSE(videoEl, blob);
+                if (okMse) {
+                    vlog('مسار التشغيل المحلي: MediaSource');
+                    return true;
+                }
+                localModeSkip.mse = true;
+                mseTeardown();
+            }
+
+            // المسار 3 (احتياطي): Blob URL
+            mseTeardown();
+            currentLocalMode = 'blob';
+            videoEl.loop = true;
+            vlog('مسار التشغيل المحلي: Blob');
             try {
                 if (activeObjectUrl) {
                     URL.revokeObjectURL(activeObjectUrl);
@@ -815,6 +938,9 @@
             if (!videoEl || !url) return;
             showVideoBackground();
             try {
+                mseTeardown();
+                currentLocalMode = null;
+                videoEl.loop = true;
                 if (activeObjectUrl && !usingLocalBlobNow) {
                     URL.revokeObjectURL(activeObjectUrl);
                     activeObjectUrl = null;
@@ -914,7 +1040,13 @@
                 vlog('تنزيل الفيديو للعمل أوفلاين: ' + targetUrl);
                 vlog('حالة الفيديو: تنزيل الفيديو للعمل أوفلاين 0%');
 
-                const res = await fetch(targetUrl, { cache: 'no-store' });
+                let fetchUrl = targetUrl;
+                if (targetUrl === resolveVideoUrl(DEFAULT_OPENSOURCE_VIDEO)) fetchUrl = resolveVideoUrl('./' + OFFLINE_VIDEO_FILENAME);
+                let res = await fetch(fetchUrl, { cache: 'no-store' });
+                if (!res.ok && fetchUrl !== targetUrl) {
+                    vlog('ملف ' + OFFLINE_VIDEO_FILENAME + ' غير موجود (HTTP ' + res.status + ') — استخدام video.mp4');
+                    res = await fetch(targetUrl, { cache: 'no-store' });
+                }
                 if (!res.ok) throw new Error('HTTP ' + res.status);
 
                 const contentType = (res.headers.get('content-type') || '').toLowerCase();
@@ -1028,11 +1160,13 @@
                 }
             }
 
-            if (swActive && !swPlaybackDisabled && !forceReset && (await swCacheHas(currentVideoSourceUrl))) {
+            if (swActive && !localModeSkip.sw && !forceReset && (await swCacheHas(currentVideoSourceUrl))) {
                 vlog('تشغيل الفيديو من Cache Storage عبر Service Worker (' + HOST_VIDEO_FILENAME + ' جاهز أوفلاين)');
                 updateOfflineVideoBanner('الفيديو (' + HOST_VIDEO_FILENAME + ') محفوظ محلياً ويعمل عند انقطاع الإنترنت.');
+                mseTeardown();
                 usingLocalBlobNow = true;
-                usingSwPlayback = true;
+                currentLocalMode = 'sw';
+                videoEl.loop = true;
                 videoEl.muted = !userWantsAudio;
                 videoEl.src = currentVideoSourceUrl;
                 videoEl.load();
@@ -1068,6 +1202,20 @@
                 videoEl.play().catch(() => {});
             });
 
+            videoEl.addEventListener('ended', () => {
+                if (currentLocalMode !== 'mse' || !mseState) return;
+                // تكرار الفيديو في وضع MediaSource
+                try {
+                    const b = videoEl.buffered;
+                    if (b && b.length && b.start(0) <= 0.2) {
+                        videoEl.currentTime = 0;
+                        videoEl.play().catch(() => {});
+                        return;
+                    }
+                } catch (e) {}
+                if (cachedBlobRef && isValidVideoBlob(cachedBlobRef)) playBlobOnVideo(videoEl, cachedBlobRef);
+            });
+
             videoEl.addEventListener('playing', () => {
                 if (activeMediaKind !== 'video') return;
                 hideFallbackCanvas();
@@ -1078,10 +1226,10 @@
                 const code = videoEl.error ? videoEl.error.code : 'unknown';
                 vlog('خطأ مشغل الفيديو code=' + code + ' محلي=' + usingLocalBlobNow);
 
-                if (usingSwPlayback) {
-                    // فشل التشغيل عبر Service Worker: جرّب مسار Blob القديم مرة واحدة كاحتياط
-                    usingSwPlayback = false;
-                    swPlaybackDisabled = true;
+                if (usingLocalBlobNow && currentLocalMode && currentLocalMode !== 'blob') {
+                    // فشل المسار الحالي: انتقل فوراً للمسار التالي (sw ← mse ← blob)
+                    vlog('فشل مسار ' + currentLocalMode + ' — تجربة المسار التالي');
+                    localModeSkip[currentLocalMode] = true;
                     if (cachedBlobRef && isValidVideoBlob(cachedBlobRef)) {
                         playBlobOnVideo(videoEl, cachedBlobRef);
                         return;
