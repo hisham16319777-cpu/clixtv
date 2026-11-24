@@ -124,11 +124,12 @@
         function render() {
             if (!panel) return;
             var v = document.getElementById('bgVideo');
-            var head = v ? ('فيديو: t=' + Math.floor(v.currentTime || 0) + 's ready=' + v.readyState +
+            var mediaMode = (typeof activeMediaKind !== 'undefined') ? activeMediaKind : 'video';
+            var head = 'الوضع: ' + mediaMode + (v ? (' | فيديو: t=' + Math.floor(v.currentTime || 0) + 's ready=' + v.readyState +
                        ' paused=' + v.paused + ' muted=' + v.muted +
                        ' err=' + (v.error ? v.error.code : '-') +
                        ' blob=' + (typeof cachedBlobRef !== 'undefined' && !!cachedBlobRef))
-                       : 'فيديو: غير متوفر (وضع Canvas)';
+                       : ' | فيديو: غير متوفر (وضع Canvas)');
             head += '\nذاكرة JS: ' + (heap() === null ? '؟' : heap() + 'MB') + ' | متصل(المتصفح): ' + navigator.onLine;
             var lines = readLog().slice(-22).map(function (r) { return hhmmss(r[0]) + '  ' + r[1]; });
             panel.textContent = head + '\n----------\n' + lines.join('\n');
@@ -204,6 +205,7 @@
 <body class="bg-slate-950 text-white h-screen overflow-hidden flex flex-col justify-between select-none">
 
     <video id="bgVideo" autoplay loop muted playsinline preload="auto" crossorigin="anonymous" class="fullscreen-bg"></video>
+    <img id="bgImage" alt="خلفية العرض" class="fullscreen-bg hidden">
     <canvas id="fallbackCanvas" class="fullscreen-bg hidden"></canvas>
     <div id="overlayLayer" class="absolute inset-0 bg-slate-950/80 backdrop-blur-[2px] z-0 fade-transition"></div>
 
@@ -227,6 +229,11 @@
                 <i class="fa-solid fa-cloud-arrow-down text-emerald-400"></i>
                 <span id="syncStatusText">جاري الاتصال...</span>
             </div>
+
+            <button tabindex="0" onclick="openScreenMediaModal()" id="screenMediaBtn" class="tv-focusable bg-cyan-600/40 hover:bg-cyan-600/60 text-cyan-100 px-3 py-1.5 rounded-lg border border-cyan-400/50 text-xs font-bold flex items-center gap-2 shadow-lg transition cursor-pointer">
+                <i class="fa-solid fa-photo-film text-cyan-300"></i>
+                <span>وسائط الشاشة</span>
+            </button>
 
             <button tabindex="0" onclick="openSpecsFullscreenModal()" id="specsModalBtn" class="tv-focusable bg-indigo-600/40 hover:bg-indigo-600/60 text-indigo-100 px-3 py-1.5 rounded-lg border border-indigo-400/50 text-xs font-bold flex items-center gap-2 shadow-lg transition cursor-pointer">
                 <i class="fa-solid fa-expand text-indigo-300"></i>
@@ -292,6 +299,43 @@
         </button>
     </footer>
 
+    <div id="screenMediaModal" class="fixed inset-0 bg-slate-950/92 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="w-full max-w-xl bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="text-lg font-bold text-cyan-300 flex items-center gap-2">
+                    <i class="fa-solid fa-photo-film"></i>
+                    <span>اختيار صور أو فيديو من الشاشة (يعمل أوفلاين)</span>
+                </h3>
+                <button tabindex="0" onclick="closeScreenMediaModal()" class="tv-focusable bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1 rounded-lg text-xs font-bold cursor-pointer">إغلاق</button>
+            </div>
+
+            <p class="text-xs text-slate-300 leading-relaxed">
+                اختر ملف صورة أو فيديو من ذاكرة الشاشة أو وحدة التخزين المتصلة بها؛ سيتم عرضه فوراً وحفظه محلياً في <span class="text-emerald-300 font-bold">IndexedDB</span> للعمل تلقائياً عند انقطاع الإنترنت.
+            </p>
+
+            <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div class="text-xs text-slate-300">
+                    <div class="font-bold text-white mb-0.5">الوسيط النشط حالياً:</div>
+                    <div id="activeMediaInfoText" class="text-cyan-300 font-mono text-[11px]">video.mp4</div>
+                </div>
+                <label tabindex="0" class="tv-focusable bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl cursor-pointer transition flex items-center gap-2 shrink-0">
+                    <i class="fa-solid fa-folder-open"></i>
+                    <span>اختيار صورة أو فيديو من الشاشة</span>
+                    <input type="file" id="screenMediaFileInput" accept="image/*,video/*" onchange="handleScreenMediaSelection(event)" class="hidden">
+                </label>
+            </div>
+
+            <div class="flex flex-wrap gap-2.5 pt-2 border-t border-slate-800">
+                <button tabindex="0" onclick="useHostDefaultVideoMedia()" class="tv-focusable flex-1 bg-blue-600/30 hover:bg-blue-600/50 text-blue-200 border border-blue-500/40 px-4 py-2.5 rounded-xl text-xs font-bold cursor-pointer">
+                    <i class="fa-solid fa-video ml-1"></i> العودة لفيديو الاستضافة (video.mp4)
+                </button>
+                <button tabindex="0" onclick="clearSavedScreenMediaAndReload()" class="tv-focusable bg-red-950/60 hover:bg-red-900 text-red-200 border border-red-800 px-4 py-2.5 rounded-xl text-xs font-bold cursor-pointer">
+                    <i class="fa-solid fa-trash-can ml-1"></i> مسح المحفوظ محلياً
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div id="specsFullscreenModal" class="fixed inset-0 bg-slate-950/92 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
         <div id="specsFullscreenContent" class="w-[94vw] max-w-5xl bg-slate-900/98 border-2 border-blue-500/50 rounded-3xl p-6 md:p-8 shadow-[0_0_60px_rgba(37,99,235,0.45)] max-h-[92vh] overflow-y-auto flex flex-col justify-between gap-6">
         </div>
@@ -339,7 +383,7 @@
                     <i class="fa-solid fa-bolt text-emerald-400"></i> التحديث التلقائي المباشر مفعل بنجاح على جميع الشاشات المتصلة
                 </h4>
                 <p id="videoOfflineStatusBanner" class="text-[11px] text-slate-300">
-                    يتم تشغيل الفيديو (video.mp4) مباشرة من الاستضافة وحفظه محلياً على الشاشة للعمل عند انقطاع الإنترنت.
+                    يتم تشغيل الفيديو (video.mp4) أو الوسائط المختارة من الشاشة وحفظها محلياً للعمل عند انقطاع الإنترنت.
                 </p>
             </div>
 
@@ -416,11 +460,15 @@
         const VIDEO_CACHE_DB = "clix_tv_video_db_v2";
         const VIDEO_CACHE_STORE = "videos";
         const VIDEO_CACHE_KEY = "active_screen_video_v2";
+        const SCREEN_MEDIA_KEY = "active_screen_custom_media_v1";
 
         let userWantsAudio = false;
         let fallbackAnimStarted = false;
         let cachedBlobRef = null;
+        let cachedImageBlobRef = null;
         let activeObjectUrl = null;
+        let activeImageObjectUrl = null;
+        let activeMediaKind = "video";
         let currentVideoSourceUrl = DEFAULT_OPENSOURCE_VIDEO;
         let videoRetryTimer = null;
         let videoDownloadInFlight = false;
@@ -431,6 +479,11 @@
         function updateOfflineVideoBanner(msg) {
             const el = document.getElementById('videoOfflineStatusBanner');
             if (el && msg) el.textContent = msg;
+        }
+
+        function setActiveMediaInfoLabel(label) {
+            const el = document.getElementById('activeMediaInfoText');
+            if (el && label) el.textContent = label;
         }
 
         function resolveVideoUrl(rawUrl) {
@@ -459,7 +512,7 @@
 
             if (v) {
                 v.muted = !userWantsAudio;
-                if (userWantsAudio && v.readyState >= 2) {
+                if (userWantsAudio && activeMediaKind === 'video' && v.readyState >= 2) {
                     v.play().catch(() => {});
                 }
             }
@@ -478,9 +531,58 @@
             if (canvas) canvas.classList.add('hidden');
         }
 
+        function showImageBackground(blobOrUrl, nameLabel = 'صورة من الشاشة') {
+            const imgEl = document.getElementById('bgImage');
+            const videoEl = document.getElementById('bgVideo');
+            if (!imgEl) return;
+
+            if (videoEl) {
+                try { videoEl.pause(); } catch (e) {}
+                videoEl.classList.add('hidden');
+            }
+            hideFallbackCanvas();
+
+            let srcToUse = '';
+            if (blobOrUrl instanceof Blob) {
+                if (activeImageObjectUrl) {
+                    URL.revokeObjectURL(activeImageObjectUrl);
+                    activeImageObjectUrl = null;
+                }
+                activeImageObjectUrl = URL.createObjectURL(blobOrUrl);
+                srcToUse = activeImageObjectUrl;
+            } else {
+                srcToUse = String(blobOrUrl || '');
+            }
+
+            if (!srcToUse) return;
+            activeMediaKind = 'image';
+            imgEl.onload = () => {
+                hideFallbackCanvas();
+                imgEl.classList.remove('hidden');
+            };
+            imgEl.onerror = () => {
+                imgEl.classList.add('hidden');
+                enableFallbackAnimation();
+            };
+            imgEl.src = srcToUse;
+            imgEl.classList.remove('hidden');
+            setActiveMediaInfoLabel('صورة: ' + nameLabel);
+            updateOfflineVideoBanner('يتم عرض (' + nameLabel + ') وحفظها محلياً للعمل عند انقطاع الإنترنت.');
+        }
+
+        function showVideoBackground() {
+            const imgEl = document.getElementById('bgImage');
+            const videoEl = document.getElementById('bgVideo');
+            if (imgEl) imgEl.classList.add('hidden');
+            if (videoEl) videoEl.classList.remove('hidden');
+            activeMediaKind = 'video';
+        }
+
         function enableFallbackAnimation() {
             const canvas = document.getElementById('fallbackCanvas');
+            const imgEl = document.getElementById('bgImage');
             syncAudioButtonUI();
+            if (imgEl && !imgEl.classList.contains('hidden')) return;
             if (!canvas) return;
             canvas.classList.remove('hidden');
             if (fallbackAnimStarted) return;
@@ -529,13 +631,13 @@
             });
         }
 
-        async function readCachedVideoRecord() {
+        async function readIdbRecord(key) {
             try {
                 const db = await openVideoIdb();
                 return await new Promise((resolve, reject) => {
                     const tx = db.transaction(VIDEO_CACHE_STORE, 'readonly');
                     const store = tx.objectStore(VIDEO_CACHE_STORE);
-                    const req = store.get(VIDEO_CACHE_KEY);
+                    const req = store.get(key);
                     req.onsuccess = () => resolve(req.result || null);
                     req.onerror = () => reject(req.error);
                 });
@@ -544,13 +646,13 @@
             }
         }
 
-        async function writeCachedVideoRecord(url, blob) {
+        async function writeIdbRecord(key, payload) {
             try {
                 const db = await openVideoIdb();
                 await new Promise((resolve, reject) => {
                     const tx = db.transaction(VIDEO_CACHE_STORE, 'readwrite');
                     const store = tx.objectStore(VIDEO_CACHE_STORE);
-                    const req = store.put({ url: url, blob: blob, savedAt: Date.now() }, VIDEO_CACHE_KEY);
+                    const req = store.put(payload, key);
                     req.onsuccess = () => resolve();
                     req.onerror = () => reject(req.error);
                 });
@@ -560,16 +662,28 @@
             }
         }
 
-        async function clearCachedVideoRecord() {
+        async function deleteIdbRecord(key) {
             try {
                 const db = await openVideoIdb();
                 await new Promise((resolve) => {
                     const tx = db.transaction(VIDEO_CACHE_STORE, 'readwrite');
-                    const req = tx.objectStore(VIDEO_CACHE_STORE).delete(VIDEO_CACHE_KEY);
+                    const req = tx.objectStore(VIDEO_CACHE_STORE).delete(key);
                     req.onsuccess = () => resolve();
                     req.onerror = () => resolve();
                 });
             } catch (e) {}
+        }
+
+        async function readCachedVideoRecord() {
+            return readIdbRecord(VIDEO_CACHE_KEY);
+        }
+
+        async function writeCachedVideoRecord(url, blob) {
+            return writeIdbRecord(VIDEO_CACHE_KEY, { url: url, blob: blob, savedAt: Date.now() });
+        }
+
+        async function clearCachedVideoRecord() {
+            return deleteIdbRecord(VIDEO_CACHE_KEY);
         }
 
         function isValidVideoBlob(blob) {
@@ -583,6 +697,7 @@
 
         function playBlobOnVideo(videoEl, blob) {
             if (!videoEl || !isValidVideoBlob(blob)) return false;
+            showVideoBackground();
             try {
                 if (activeObjectUrl) {
                     URL.revokeObjectURL(activeObjectUrl);
@@ -607,6 +722,7 @@
 
         function playRemoteStreamOnVideo(videoEl, url) {
             if (!videoEl || !url) return;
+            showVideoBackground();
             try {
                 if (activeObjectUrl && !usingLocalBlobNow) {
                     URL.revokeObjectURL(activeObjectUrl);
@@ -622,6 +738,81 @@
             } catch (e) {
                 vlog('خطأ تشغيل البث المباشر: ' + ((e && e.message) || e));
             }
+        }
+
+        function openScreenMediaModal() {
+            lastFocusedElement = document.querySelector('.tv-focused') || document.activeElement;
+            const modal = document.getElementById('screenMediaModal');
+            if (!modal) return;
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                const firstBtn = modal.querySelector('button, label');
+                if (firstBtn) setTVFocus(firstBtn);
+            }, 80);
+        }
+
+        function closeScreenMediaModal() {
+            const modal = document.getElementById('screenMediaModal');
+            if (modal) modal.classList.add('hidden');
+            if (lastFocusedElement) {
+                setTimeout(() => setTVFocus(lastFocusedElement), 50);
+            }
+        }
+
+        async function handleScreenMediaSelection(event) {
+            const inputEl = event.target;
+            const file = inputEl && inputEl.files ? inputEl.files[0] : null;
+            if (!file) return;
+
+            const isImage = (file.type && file.type.startsWith('image/')) || /\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(file.name || '');
+            const isVideo = (file.type && file.type.startsWith('video/')) || /\.(mp4|webm|ogg|mov|m4v)$/i.test(file.name || '');
+            const videoEl = document.getElementById('bgVideo');
+
+            if (isImage) {
+                const imgBlob = new Blob([file], { type: file.type || 'image/jpeg' });
+                cachedImageBlobRef = imgBlob;
+                await writeIdbRecord(SCREEN_MEDIA_KEY, {
+                    kind: 'image',
+                    name: file.name || 'صورة من الشاشة',
+                    blob: imgBlob,
+                    savedAt: Date.now()
+                });
+                vlog('تم اختيار وحفظ صورة من الشاشة للعمل أوفلاين: ' + (file.name || 'صورة'));
+                showImageBackground(imgBlob, file.name || 'صورة من الشاشة');
+            } else if (isVideo) {
+                const vidBlob = new Blob([file], { type: file.type || 'video/mp4' });
+                cachedBlobRef = vidBlob;
+                await deleteIdbRecord(SCREEN_MEDIA_KEY);
+                await writeCachedVideoRecord(currentVideoSourceUrl, vidBlob);
+                vlog('تم اختيار وحفظ فيديو من الشاشة للعمل أوفلاين: ' + (file.name || 'فيديو'));
+                setActiveMediaInfoLabel('فيديو محلي: ' + (file.name || 'فيديو من الشاشة'));
+                updateOfflineVideoBanner('تم حفظ (' + (file.name || 'الفيديو المختار') + ') محلياً على الشاشة للعمل عند انقطاع الإنترنت.');
+                if (videoEl) playBlobOnVideo(videoEl, vidBlob);
+            } else {
+                alert('يرجى اختيار ملف صورة أو فيديو صالح.');
+            }
+
+            if (inputEl) inputEl.value = '';
+        }
+
+        async function useHostDefaultVideoMedia() {
+            await deleteIdbRecord(SCREEN_MEDIA_KEY);
+            cachedImageBlobRef = null;
+            setActiveMediaInfoLabel(HOST_VIDEO_FILENAME);
+            await initOpenSourceVideoPlayer(true);
+            closeScreenMediaModal();
+        }
+
+        async function clearSavedScreenMediaAndReload() {
+            await deleteIdbRecord(SCREEN_MEDIA_KEY);
+            await clearCachedVideoRecord();
+            cachedBlobRef = null;
+            cachedImageBlobRef = null;
+            usingLocalBlobNow = false;
+            setActiveMediaInfoLabel(HOST_VIDEO_FILENAME);
+            vlog('تم مسح الوسائط المحفوظة محلياً');
+            await initOpenSourceVideoPlayer(false);
+            closeScreenMediaModal();
         }
 
         async function downloadAndSaveVideoForOffline(url) {
@@ -641,7 +832,7 @@
                 }
 
                 const contentLength = parseInt(res.headers.get('content-length') || '0', 10);
-                let finalBlob = null;
+                let rawBytesBlob = null;
 
                 if (res.body && typeof res.body.getReader === 'function') {
                     const reader = res.body.getReader();
@@ -664,17 +855,13 @@
                             }
                         }
                     }
-
-                    const mimeType = contentType.startsWith('video/') ? contentType : 'video/mp4';
-                    finalBlob = new Blob(chunks, { type: mimeType });
+                    rawBytesBlob = new Blob(chunks, { type: 'video/mp4' });
                 } else {
-                    const rawBlob = await res.blob();
-                    const mimeType = (rawBlob.type && rawBlob.type.toLowerCase().startsWith('video/'))
-                        ? rawBlob.type
-                        : (contentType.startsWith('video/') ? contentType : 'video/mp4');
-                    finalBlob = new Blob([rawBlob], { type: mimeType });
+                    const buf = await res.arrayBuffer();
+                    rawBytesBlob = new Blob([buf], { type: 'video/mp4' });
                 }
 
+                const finalBlob = new Blob([rawBytesBlob], { type: 'video/mp4' });
                 if (!isValidVideoBlob(finalBlob)) {
                     throw new Error('ملف الفيديو المحمّل فارغ أو غير صالح');
                 }
@@ -709,20 +896,33 @@
 
         async function initOpenSourceVideoPlayer(forceReset = false) {
             const videoEl = document.getElementById('bgVideo');
+            currentVideoSourceUrl = getRequestedVideoUrl();
+
+            if (forceReset) {
+                cachedBlobRef = null;
+                cachedImageBlobRef = null;
+                usingLocalBlobNow = false;
+                await clearCachedVideoRecord();
+                await deleteIdbRecord(SCREEN_MEDIA_KEY);
+            } else {
+                const customMedia = await readIdbRecord(SCREEN_MEDIA_KEY);
+                if (customMedia && customMedia.kind === 'image' && customMedia.blob) {
+                    cachedImageBlobRef = customMedia.blob;
+                    showImageBackground(customMedia.blob, customMedia.name || 'صورة من الشاشة');
+                    return;
+                }
+            }
+
             if (!videoEl) {
                 enableFallbackAnimation();
                 return;
             }
 
-            currentVideoSourceUrl = getRequestedVideoUrl();
-            if (forceReset) {
-                cachedBlobRef = null;
-                usingLocalBlobNow = false;
-                await clearCachedVideoRecord();
-            }
+            showVideoBackground();
+            setActiveMediaInfoLabel(HOST_VIDEO_FILENAME);
 
             const cachedRecord = await readCachedVideoRecord();
-            if (cachedRecord && cachedRecord.url === currentVideoSourceUrl && isValidVideoBlob(cachedRecord.blob)) {
+            if (cachedRecord && isValidVideoBlob(cachedRecord.blob)) {
                 cachedBlobRef = cachedRecord.blob;
                 vlog('تشغيل الفيديو من الذاكرة المحلية (' + HOST_VIDEO_FILENAME + ' جاهز أوفلاين)');
                 updateOfflineVideoBanner('الفيديو (' + HOST_VIDEO_FILENAME + ') محفوظ محلياً ويعمل عند انقطاع الإنترنت.');
@@ -751,34 +951,31 @@
             if (!videoEl) return;
 
             videoEl.addEventListener('loadeddata', () => {
+                if (activeMediaKind !== 'video') return;
                 hideFallbackCanvas();
                 videoEl.play().catch(() => {});
             });
 
             videoEl.addEventListener('canplay', () => {
+                if (activeMediaKind !== 'video') return;
                 hideFallbackCanvas();
                 videoEl.play().catch(() => {});
             });
 
             videoEl.addEventListener('playing', () => {
+                if (activeMediaKind !== 'video') return;
                 hideFallbackCanvas();
             });
 
             videoEl.addEventListener('error', () => {
+                if (activeMediaKind !== 'video') return;
                 const code = videoEl.error ? videoEl.error.code : 'unknown';
                 vlog('خطأ مشغل الفيديو code=' + code + ' محلي=' + usingLocalBlobNow);
 
-                if (usingLocalBlobNow) {
+                if (usingLocalBlobNow && navigator.onLine !== false) {
                     usingLocalBlobNow = false;
-                    cachedBlobRef = null;
-                    clearCachedVideoRecord();
-                    if (navigator.onLine !== false) {
-                        playRemoteStreamOnVideo(videoEl, currentVideoSourceUrl);
-                        downloadAndSaveVideoForOffline(currentVideoSourceUrl);
-                        return;
-                    }
-                } else if (cachedBlobRef && isValidVideoBlob(cachedBlobRef)) {
-                    if (playBlobOnVideo(videoEl, cachedBlobRef)) return;
+                    playRemoteStreamOnVideo(videoEl, currentVideoSourceUrl);
+                    return;
                 }
 
                 enableFallbackAnimation();
@@ -786,7 +983,8 @@
             });
 
             window.addEventListener('online', () => {
-                vlog('عاد الإنترنت — محاولة تشغيل وتنزيل ' + HOST_VIDEO_FILENAME);
+                vlog('عاد الإنترنت — التحقق من حالة الوسائط');
+                if (activeMediaKind === 'image' && cachedImageBlobRef) return;
                 if (!usingLocalBlobNow) {
                     playRemoteStreamOnVideo(videoEl, currentVideoSourceUrl);
                 } else {
@@ -796,7 +994,11 @@
             });
 
             window.addEventListener('offline', () => {
-                vlog('انقطع الإنترنت — التحقق من النسخة المحلية للفيديو');
+                vlog('انقطع الإنترنت — التحقق من النسخة المحلية للوسائط');
+                if (cachedImageBlobRef) {
+                    showImageBackground(cachedImageBlobRef, 'صورة محفوظة أوفلاين');
+                    return;
+                }
                 if (cachedBlobRef && isValidVideoBlob(cachedBlobRef)) {
                     playBlobOnVideo(videoEl, cachedBlobRef);
                 } else {
@@ -1309,7 +1511,7 @@
         }
 
         function getVisibleFocusableElements() {
-            const modals = ['specsFullscreenModal', 'pinModal', 'remoteSelectionModal', 'adminModal'];
+            const modals = ['screenMediaModal', 'specsFullscreenModal', 'pinModal', 'remoteSelectionModal', 'adminModal'];
             for (const modalId of modals) {
                 const modal = document.getElementById(modalId);
                 if (modal && !modal.classList.contains('hidden')) {
@@ -1390,6 +1592,11 @@
                     : document.querySelector('.tv-focused');
 
                 if (key === 'Escape' || key === 'GoBack' || (key === 'Backspace' && activeEl?.tagName !== 'INPUT')) {
+                    if (!document.getElementById('screenMediaModal').classList.contains('hidden')) {
+                        e.preventDefault();
+                        closeScreenMediaModal();
+                        return;
+                    }
                     if (!document.getElementById('specsFullscreenModal').classList.contains('hidden')) {
                         e.preventDefault();
                         closeSpecsFullscreenModal();
@@ -1654,7 +1861,8 @@
         let isShowingVideoOnly = false;
         function toggleDisplayMode() {
             clearTimeout(cycleTimeout);
-            const anyModalOpen = !document.getElementById('specsFullscreenModal').classList.contains('hidden') ||
+            const anyModalOpen = !document.getElementById('screenMediaModal').classList.contains('hidden') ||
+                                 !document.getElementById('specsFullscreenModal').classList.contains('hidden') ||
                                  !document.getElementById('pinModal').classList.contains('hidden') ||
                                  !document.getElementById('remoteSelectionModal').classList.contains('hidden') ||
                                  !document.getElementById('adminModal').classList.contains('hidden');
