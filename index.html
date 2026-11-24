@@ -94,6 +94,54 @@
         });
     })();
     </script>
+    <script>
+    /* سجل تشخيص: يحفظ آخر الأحداث ليُعرف سبب توقف الشاشة. يُعرض بالضغط على الزر الأصفر في الريموت أو الحرف D أو بإضافة ?debug=1 للرابط */
+    (function () {
+        var LOG_KEY = 'clix_diag_log', ALIVE_KEY = 'clix_diag_alive';
+        function hhmmss(t) { var d = new Date(t); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ':' + ('0' + d.getSeconds()).slice(-2); }
+        function readLog() { try { return JSON.parse(localStorage.getItem(LOG_KEY) || '[]'); } catch (e) { return []; } }
+        function writeLog(a) { try { localStorage.setItem(LOG_KEY, JSON.stringify(a.slice(-60))); } catch (e) {} }
+        function heap() { try { return Math.round(performance.memory.usedJSHeapSize / 1048576); } catch (e) { return null; } }
+        window.clixLog = function (msg) { var a = readLog(); a.push([Date.now(), String(msg)]); writeLog(a); };
+
+        try {
+            var prev = JSON.parse(localStorage.getItem(ALIVE_KEY) || 'null');
+            if (prev && prev.clean === false) {
+                window.clixLog('⚠ الجلسة السابقة انتهت فجأة. آخر نبضة ' + hhmmss(prev.t) + (prev.heap ? ' | ذاكرة JS ' + prev.heap + 'MB' : ''));
+            }
+        } catch (e) {}
+        window.clixLog('بدء التشغيل');
+
+        function beat(clean) { try { localStorage.setItem(ALIVE_KEY, JSON.stringify({ t: Date.now(), clean: !!clean, heap: heap() })); } catch (e) {} }
+        beat(false);
+        setInterval(function () { beat(false); }, 5000);
+        window.addEventListener('pagehide', function () { beat(true); });
+
+        window.addEventListener('error', function (e) { window.clixLog('خطأ JS: ' + (e.message || '') + ' @' + (e.lineno || '')); });
+        window.addEventListener('unhandledrejection', function (e) { window.clixLog('Promise مرفوض: ' + ((e.reason && (e.reason.message || e.reason.name)) || e.reason)); });
+        window.addEventListener('offline', function () { window.clixLog('حدث: offline'); });
+        window.addEventListener('online', function () { window.clixLog('حدث: online'); });
+
+        var panel = null, timer = null;
+        function render() {
+            if (!panel) return;
+            var vid = document.getElementById('demoVideo');
+            var head = 'فيديو: ' + (vid ? ('t=' + Math.round(vid.currentTime) + 's ready=' + vid.readyState + ' paused=' + vid.paused + ' err=' + (vid.error ? vid.error.code : '-') + ' blob=' + ((vid.currentSrc || '').indexOf('blob:') === 0)) : '-') +
+                       '\nذاكرة JS: ' + (heap() === null ? '؟' : heap() + 'MB') + ' | متصل(المتصفح): ' + navigator.onLine;
+            var lines = readLog().slice(-22).map(function (r) { return hhmmss(r[0]) + '  ' + r[1]; });
+            panel.textContent = head + '\n----------\n' + lines.join('\n');
+        }
+        function toggle() {
+            if (panel) { clearInterval(timer); panel.remove(); panel = null; return; }
+            panel = document.createElement('pre');
+            panel.style.cssText = 'position:fixed;left:8px;top:8px;z-index:99999;max-width:62vw;max-height:80vh;overflow:hidden;background:rgba(0,0,0,.88);color:#7CFC9A;font:12px/1.5 monospace;padding:10px 12px;border-radius:10px;direction:rtl;text-align:right;white-space:pre-wrap;pointer-events:none';
+            document.body.appendChild(panel);
+            render(); timer = setInterval(render, 2000);
+        }
+        window.addEventListener('keydown', function (e) { if (e.keyCode === 405 || e.key === 'd' || e.key === 'D') toggle(); });
+        window.addEventListener('load', function () { if (/[?&]debug=1/.test(location.search)) toggle(); });
+    })();
+    </script>
     <style>
         body { font-family: 'Tajawal', sans-serif; background-color: #020617; color: #ffffff; }
         .glass-panel {
@@ -449,32 +497,96 @@
             if (p && p.catch) p.catch(() => {});
         }
 
+        function vlog(m) { try { if (window.clixLog) window.clixLog(m); } catch (e) {} }
+        let videoCacheBroken = false;
+        let statusHideTimer = null;
+        function setVideoStatus(text, kind) {
+            let el = document.getElementById('videoCacheBadge');
+            if (!el) {
+                el = document.createElement('div');
+                el.id = 'videoCacheBadge';
+                el.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:60;padding:3px 10px;border-radius:8px;font:700 11px Tajawal,sans-serif;pointer-events:none;transition:opacity .6s';
+                document.body.appendChild(el);
+            }
+            const colors = { ok: ['#064e3b', '#6ee7b7'], busy: ['#78350f', '#fcd34d'], err: ['#7f1d1d', '#fca5a5'] };
+            const c = colors[kind] || colors.busy;
+            el.style.background = c[0]; el.style.color = c[1];
+            el.textContent = text;
+            el.style.opacity = '1';
+            clearTimeout(statusHideTimer);
+            if (kind === 'ok') statusHideTimer = setTimeout(() => { el.style.opacity = '0'; }, 15000);
+            vlog('حالة الفيديو: ' + text);
+        }
+        async function idbDelete(key) {
+            const db = await idbOpen();
+            return new Promise((resolve) => {
+                const tx = db.transaction(VIDEO_STORE, 'readwrite');
+                tx.objectStore(VIDEO_STORE).delete(key);
+                tx.oncomplete = () => resolve(true);
+                tx.onerror = () => resolve(false);
+            });
+        }
+
         async function useLocalVideo() {
             if (videoIsLocal) return true;
+            if (videoCacheBroken) return false;
             try {
                 const rec = await idbGet(VIDEO_KEY);
                 if (rec && rec.blob && rec.blob.size > 0 && rec.url === VIDEO_URL) {
-                    swapVideoSource(URL.createObjectURL(rec.blob));
+                    let blob = rec.blob;
+                    /* بعض متصفحات webOS ترفض تشغيل Blob بدون نوع الملف */
+                    if (!/^video\//.test(blob.type || '')) blob = new Blob([blob], { type: 'video/mp4' });
+                    swapVideoSource(URL.createObjectURL(blob));
                     videoIsLocal = true;
+                    setVideoStatus('الفيديو محفوظ ✓ يعمل بدون إنترنت', 'ok');
                     return true;
                 }
-            } catch (e) {}
+            } catch (e) { vlog('تعذر قراءة IndexedDB: ' + ((e && e.message) || e)); }
             return false;
         }
 
         async function cacheVideoForOffline() {
-            if (videoIsLocal || videoDownloading) return;
+            if (videoIsLocal || videoDownloading || videoCacheBroken) return;
             videoDownloading = true;
+            setVideoStatus('جاري تنزيل الفيديو للعمل بدون إنترنت...', 'busy');
             try {
                 try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+                try {
+                    if (navigator.storage && navigator.storage.estimate) {
+                        const est = await navigator.storage.estimate();
+                        vlog('مساحة التخزين: ' + Math.round((est.usage || 0) / 1048576) + 'MB من ' + Math.round((est.quota || 0) / 1048576) + 'MB');
+                    }
+                } catch (e) {}
                 const res = await fetch(VIDEO_URL, { mode: 'cors' });
-                if (!res || !res.ok) throw new Error('video http');
-                const blob = await res.blob();
-                if (!blob || blob.size === 0) throw new Error('empty video');
+                if (!res || !res.ok) throw new Error('HTTP ' + (res && res.status));
+                const total = Number(res.headers.get('content-length')) || 0;
+                let blob;
+                if (res.body && res.body.getReader) {
+                    const reader = res.body.getReader();
+                    const chunks = [];
+                    let got = 0, lastPct = -1;
+                    for (;;) {
+                        const r = await reader.read();
+                        if (r.done) break;
+                        chunks.push(r.value);
+                        got += r.value.length;
+                        if (total) {
+                            const pct = Math.floor(got * 100 / total);
+                            if (pct !== lastPct && pct % 10 === 0) { lastPct = pct; setVideoStatus('تنزيل الفيديو ' + pct + '%', 'busy'); }
+                        }
+                    }
+                    blob = new Blob(chunks, { type: 'video/mp4' });
+                } else {
+                    blob = await res.blob();
+                    if (!/^video\//.test(blob.type || '')) blob = new Blob([blob], { type: 'video/mp4' });
+                }
+                if (!blob || !blob.size) throw new Error('الملف فارغ');
                 await idbPut(VIDEO_KEY, { url: VIDEO_URL, blob: blob, savedAt: Date.now() });
-                await useLocalVideo();
+                const ok = await useLocalVideo();
+                if (!ok) setVideoStatus('تم الحفظ لكن تعذر قراءته', 'err');
             } catch (e) {
-                /* فشل التحميل (لا إنترنت أو CORS): نحاول لاحقاً، والعرض مستمر */
+                const why = (e && e.name === 'QuotaExceededError') ? 'مساحة التخزين ممتلئة' : ((e && e.message) || String(e));
+                setVideoStatus('الفيديو غير محفوظ: ' + why, 'err');
             } finally {
                 videoDownloading = false;
             }
@@ -967,14 +1079,14 @@
 
             initCloudSync();
 
-            if ('wakeLock' in navigator) {
-                navigator.wakeLock.request('screen').catch(() => {});
-            }
-            setInterval(() => {
-                if ('wakeLock' in navigator) {
-                    navigator.wakeLock.request('screen').catch(() => {});
-                }
-            }, 30000);
+            let wakeSentinel = null;
+            const acquireWake = () => {
+                if (!('wakeLock' in navigator)) return;
+                if (wakeSentinel && !wakeSentinel.released) return;
+                navigator.wakeLock.request('screen').then((sn) => { wakeSentinel = sn; }).catch(() => {});
+            };
+            acquireWake();
+            setInterval(acquireWake, 30000);
 
             window.addEventListener('mousemove', triggerRemoteUI);
             window.addEventListener('keydown', triggerRemoteUI);
@@ -983,6 +1095,16 @@
 
             startContinuousCycle();
 
+            (() => {
+                const v = document.getElementById('demoVideo');
+                const seen = {};
+                ['waiting', 'stalled', 'abort', 'emptied'].forEach((ev) => {
+                    if (v) v.addEventListener(ev, () => {
+                        const n = Date.now();
+                        if (!seen[ev] || n - seen[ev] > 5000) { seen[ev] = n; vlog('حدث فيديو: ' + ev); }
+                    });
+                });
+            })();
             (async () => {
                 const vid = document.getElementById('demoVideo');
                 await useLocalVideo();
@@ -1538,19 +1660,53 @@
         }
 
         let videoErrorTimer = null;
+        let localVideoErrors = 0;
         function handleVideoError() {
+            const vid = document.getElementById('demoVideo');
+            vlog('خطأ فيديو code=' + (vid && vid.error ? vid.error.code : '?') + ' محلي=' + videoIsLocal);
+            clearTimeout(videoErrorTimer);
             if (videoIsLocal) {
-                clearTimeout(videoErrorTimer);
+                localVideoErrors++;
+                if (localVideoErrors >= 3) {
+                    /* الفيديو المحفوظ لا يعمل على هذه الشاشة: نتخلى عنه ونعرض الخلفية البديلة بدل الشاشة السوداء */
+                    videoIsLocal = false;
+                    videoCacheBroken = true;
+                    localVideoErrors = 0;
+                    idbDelete(VIDEO_KEY).catch(() => {});
+                    enableFallbackAnimation();
+                    setVideoStatus('الفيديو المحفوظ لا يعمل على هذه الشاشة', 'err');
+                    return;
+                }
                 videoErrorTimer = setTimeout(() => {
-                    const vid = document.getElementById('demoVideo');
                     if (vid) { try { vid.load(); vid.play().catch(() => {}); } catch (e) {} }
                 }, 2000);
                 return;
             }
             enableFallbackAnimation();
-            clearTimeout(videoErrorTimer);
             videoErrorTimer = setTimeout(cacheVideoForOffline, 15000);
         }
+
+        /* حارس: إذا تجمّد الفيديو أكثر من ~12 ثانية نعالجه بدل تركه متجمداً أو أسود */
+        (function () {
+            let last = -1, same = 0, fixes = 0;
+            setInterval(() => {
+                const vid = document.getElementById('demoVideo');
+                if (!vid || vid.classList.contains('hidden')) return;
+                const t = vid.currentTime;
+                if (t !== last) { last = t; same = 0; fixes = 0; return; }
+                same++;
+                if (same < 3) return;
+                same = 0;
+                if (videoIsLocal) {
+                    fixes++;
+                    vlog('الفيديو المحلي متجمد، محاولة ' + fixes);
+                    try { if (fixes >= 2) vid.load(); vid.play().catch(() => {}); } catch (e) {}
+                } else {
+                    vlog('الفيديو المباشر متجمد: تفعيل الخلفية البديلة');
+                    enableFallbackAnimation();
+                }
+            }, 4000);
+        })();
 
         let fallbackAnimStarted = false;
         function enableFallbackAnimation() {
