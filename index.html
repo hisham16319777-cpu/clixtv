@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>معارض كليكس - عرض الشاشات الذكي الشامل</title>
     <script>
-    /* تحميل المكتبات الخارجية مع تخزينها محلياً: بعد أول تشغيل بالإنترنت تعمل الصفحة حتى لو بدأت بدون إنترنت */
     (function () {
         var PFX = 'clix_asset_v1_';
         var ASSETS = [
@@ -26,7 +25,7 @@
                         document.head.appendChild(s);
                     } else {
                         var st = document.createElement('style');
-                        st.text = cached;
+                        st.textContent = cached;
                         document.head.appendChild(st);
                     }
                     return;
@@ -92,7 +91,6 @@
     })();
     </script>
     <script>
-    /* سجل تشخيص: يحفظ آخر الأحداث ليُعرف سبب توقف الشاشة. يُعرض بالضغط على الزر الأصفر في الريموت أو الحرف D أو بإضافة ?debug=1 للرابط */
     (function () {
         var LOG_KEY = 'clix_diag_log', ALIVE_KEY = 'clix_diag_alive';
         function hhmmss(t) { var d = new Date(t); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ':' + ('0' + d.getSeconds()).slice(-2); }
@@ -205,7 +203,6 @@
     <canvas id="fallbackCanvas" class="fullscreen-bg hidden"></canvas>
     <div id="overlayLayer" class="absolute inset-0 bg-slate-950/80 backdrop-blur-[2px] z-0 fade-transition"></div>
 
-    <!-- Header Section -->
     <header id="appHeader" class="glass-panel relative z-30 px-6 py-2 flex items-center justify-between border-b border-slate-800 fade-transition shrink-0">
         <div class="flex items-center gap-3 pixel-protector">
             <div class="bg-[#00529b] text-white px-4 py-1.5 rounded-xl border border-blue-400/30 shadow-2xl flex flex-col items-center justify-center tracking-wide">
@@ -243,7 +240,6 @@
         </div>
     </header>
 
-    <!-- Main Content Area -->
     <main id="mainContentArea" class="container mx-auto px-4 py-1.5 flex-grow flex flex-col justify-center relative z-20 pixel-protector fade-transition h-full overflow-hidden">
 
         <div class="flex justify-center items-center mb-1 bg-slate-900/85 px-4 py-0.5 rounded-xl border border-slate-800 backdrop-blur max-w-xl mx-auto shrink-0">
@@ -253,10 +249,8 @@
             </span>
         </div>
 
-        <!-- شبكة الشاشات -->
         <div id="tvCardsGrid" class="grid grid-cols-4 gap-3 max-w-6xl mx-auto my-auto items-stretch justify-center w-full"></div>
 
-        <!-- أزرار التحكم والشريط التسويقي -->
         <div class="mt-1.5 shrink-0 max-w-4xl mx-auto w-full">
             <div class="flex justify-center items-center gap-4 mb-1.5 relative z-30">
                 <button id="brandSelectBtn" tabindex="0" onclick="changeBrandSecurely()" class="tv-focusable bg-blue-600/40 hover:bg-blue-600/60 border border-blue-400/70 px-6 py-2 rounded-2xl text-blue-100 font-black text-base flex items-center gap-3 transition shadow-2xl cursor-pointer backdrop-blur">
@@ -272,7 +266,6 @@
                 </button>
             </div>
 
-            <!-- عبارة التنبيه التسويقية -->
             <div class="bg-gradient-to-r from-amber-950/70 via-slate-900/95 to-amber-950/70 backdrop-blur border border-amber-500/50 rounded-xl px-4 py-1 flex items-center justify-between shadow-xl">
                 <div class="flex items-center gap-2 text-xs md:text-sm font-bold text-amber-100 tracking-wide">
                     <i class="fa-solid fa-crown text-amber-400 text-base animate-bounce"></i>
@@ -284,7 +277,6 @@
 
     </main>
 
-    <!-- Footer Ticker -->
     <footer id="appFooter" class="glass-panel relative z-30 py-1 px-6 border-t border-slate-900 text-xs fade-transition flex items-center justify-between shrink-0">
         <marquee class="text-slate-300 font-medium flex-grow">
             ⚡ الأسعار تشمل ضريبة القيمة المضافة 15% • Prices Include 15% VAT • ضمان الوكيل الرسمي المعتمد • Official Warranty ⚡
@@ -296,13 +288,11 @@
         </button>
     </footer>
 
-    <!-- نافذة عرض المواصفات الكاملة -->
     <div id="specsFullscreenModal" class="fixed inset-0 bg-slate-950/92 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
         <div id="specsFullscreenContent" class="w-[94vw] max-w-5xl bg-slate-900/98 border-2 border-blue-500/50 rounded-3xl p-6 md:p-8 shadow-[0_0_60px_rgba(37,99,235,0.45)] max-h-[92vh] overflow-y-auto flex flex-col justify-between gap-6">
         </div>
     </div>
 
-    <!-- نافذة إدخال الرمز السري -->
     <div id="pinModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 flex items-center justify-center hidden">
         <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-96 shadow-2xl text-center">
             <h3 class="text-lg font-bold text-white mb-3"><i class="fa-solid fa-lock text-amber-400"></i> إدخال كلمة المرور</h3>
@@ -315,7 +305,6 @@
         </div>
     </div>
 
-    <!-- نافذة الاختيار بالريموت -->
     <div id="remoteSelectionModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 flex items-center justify-center hidden">
         <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl">
             <div class="flex justify-between items-center border-b border-slate-800 pb-3 mb-4">
@@ -329,7 +318,6 @@
         </div>
     </div>
 
-    <!-- Admin Panel Modal -->
     <div id="adminModal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex items-center justify-center hidden">
         <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-5xl p-6 shadow-2xl max-h-[92vh] overflow-y-auto">
             <div class="flex justify-between items-center pb-4 border-b border-slate-800 mb-4">
@@ -347,7 +335,7 @@
                     <i class="fa-solid fa-bolt text-emerald-400"></i> التحديث التلقائي المباشر وتشغيل الفيديو أوفلاين مفعل بنجاح
                 </h4>
                 <p class="text-[11px] text-slate-300">
-                    جميع شاشات التلفزيون المتصلة بهذا الرابط متزامنة سحابياً مع حفظ تلقائي محلي وتخزين الفيديو في الكاش لضمان استمرار العرض والفيديو حتى عند انقطاع الإنترنت.
+                    جميع شاشات التلفزيون المتصلة بهذا الرابط متزامنة سحابياً مع حفظ تلقائي محلي لضمان استمرار العرض حتى عند انقطاع الإنترنت.
                 </p>
             </div>
 
@@ -469,6 +457,10 @@
         let cachedBlobRef = null;
         let candidateIndex = 0;
         let userWantsAudio = false;
+        let lastObservedTime = -1;
+        let stuckTicks = 0;
+        let videoDisabledOnDevice = false;
+        let localBlobRejected = false;
 
         function vlog(m) { try { if (window.clixLog) window.clixLog(m); } catch (e) {} }
         let statusHideTimer = null;
@@ -495,7 +487,7 @@
             const icon = document.getElementById('audioIcon');
             const text = document.getElementById('audioText');
             if (!vid || !icon || !text) return;
-            const isAudible = !vid.muted && userWantsAudio;
+            const isAudible = !vid.muted && userWantsAudio && !videoDisabledOnDevice;
             if (isAudible) {
                 icon.className = "fa-solid fa-volume-high text-emerald-400";
                 text.innerText = "كتم الصوت";
@@ -506,7 +498,7 @@
         }
 
         function safePlayVideo(vid, allowSound = false) {
-            if (!vid) return;
+            if (!vid || videoDisabledOnDevice) return;
             vid.loop = true;
             vid.playsInline = true;
             vid.muted = !(allowSound && userWantsAudio);
@@ -514,7 +506,6 @@
                 const p = vid.play();
                 if (p && typeof p.catch === 'function') {
                     p.catch(() => {
-                        /* على webOS إذا فشل التشغيل بالصوت نعود للتشغيل الصامت فوراً ولا نوقف الفيديو */
                         if (!vid.muted) {
                             vid.muted = true;
                             const retry = vid.play();
@@ -531,16 +522,18 @@
             const vid = document.getElementById('demoVideo');
             const sourceEl = document.getElementById('demoVideoSource');
             const canvas = document.getElementById('fallbackCanvas');
-            if (!vid || !url) return;
+            if (!vid || !url || videoDisabledOnDevice) return;
 
-            const prevTime = vid.currentTime || 0;
             if (localVideoObjectUrl && localVideoObjectUrl !== url && localVideoObjectUrl.startsWith('blob:')) {
                 try { URL.revokeObjectURL(localVideoObjectUrl); } catch (e) {}
+                localVideoObjectUrl = null;
             }
             if (url.startsWith('blob:')) {
                 localVideoObjectUrl = url;
             }
             videoIsLocal = !!isLocalBlob;
+            stuckTicks = 0;
+            lastObservedTime = -1;
 
             if (sourceEl) {
                 sourceEl.src = url;
@@ -548,24 +541,14 @@
             }
             vid.src = url;
 
-            const onLoaded = () => {
-                vid.removeEventListener('loadedmetadata', onLoaded);
-                try {
-                    if (prevTime > 0 && vid.duration && isFinite(vid.duration) && vid.duration > 1) {
-                        vid.currentTime = prevTime % vid.duration;
-                    }
-                } catch (e) {}
-                safePlayVideo(vid, userWantsAudio);
-            };
-            vid.addEventListener('loadedmetadata', onLoaded);
-
             if (canvas) canvas.classList.add('hidden');
             vid.classList.remove('hidden');
             try { vid.load(); } catch (e) {}
-            safePlayVideo(vid, false);
+            safePlayVideo(vid, userWantsAudio);
         }
 
         async function useLocalVideo(forceNewUrl = false) {
+            if (videoDisabledOnDevice || localBlobRejected) return false;
             try {
                 if (!cachedBlobRef) {
                     const rec = await idbGet(VIDEO_KEY);
@@ -580,7 +563,6 @@
                     } else {
                         swapVideoSource(localVideoObjectUrl, true);
                     }
-                    setVideoStatus('الفيديو محفوظ ✓ يعمل بدون إنترنت', 'ok');
                     return true;
                 }
             } catch (e) {
@@ -634,7 +616,7 @@
         }
 
         async function cacheVideoForOffline() {
-            if (videoDownloading) return;
+            if (videoDownloading || videoDisabledOnDevice || localBlobRejected) return;
             if (cachedBlobRef && cachedBlobRef.size > 0) {
                 if (!videoIsLocal) await useLocalVideo(false);
                 return;
@@ -652,13 +634,11 @@
                         vlog('تعذر تنزيل ' + url + ' : ' + ((e && e.message) || e));
                     }
                 }
-                if (blob) {
+                if (blob && !localBlobRejected) {
                     cachedBlobRef = blob;
                     try {
                         await idbPut(VIDEO_KEY, { url: usedUrl, blob: blob, savedAt: Date.now() });
-                    } catch (e) {
-                        vlog('تعذر حفظ الفيديو في IndexedDB: ' + ((e && e.message) || e));
-                    }
+                    } catch (e) {}
                     await useLocalVideo(true);
                 }
             } finally {
@@ -1052,13 +1032,9 @@
             startCloudStream();
             if (pushPending) flushPush();
             cacheVideoForOffline();
-            const vid = document.getElementById('demoVideo');
-            if (vid) {
-                if (vid.classList.contains('hidden')) {
-                    useLocalVideo(true).then(ok => {
-                        if (!ok) swapVideoSource(VIDEO_CANDIDATES[candidateIndex % VIDEO_CANDIDATES.length], false);
-                    });
-                } else {
+            if (!videoDisabledOnDevice) {
+                const vid = document.getElementById('demoVideo');
+                if (vid && !vid.classList.contains('hidden')) {
                     safePlayVideo(vid, userWantsAudio);
                 }
             }
@@ -1156,16 +1132,23 @@
             (() => {
                 const v = document.getElementById('demoVideo');
                 const seen = {};
-                ['waiting', 'stalled', 'abort', 'emptied', 'canplay', 'loadeddata'].forEach((ev) => {
+                ['waiting', 'stalled', 'abort', 'emptied', 'canplay', 'loadeddata', 'timeupdate'].forEach((ev) => {
                     if (v) v.addEventListener(ev, () => {
-                        if (ev === 'canplay' || ev === 'loadeddata') {
-                            safePlayVideo(v, userWantsAudio);
+                        if (videoDisabledOnDevice) return;
+                        if (ev === 'timeupdate' && v.currentTime > 0.2) {
+                            stuckTicks = 0;
                             const canvas = document.getElementById('fallbackCanvas');
                             if (canvas) canvas.classList.add('hidden');
                             v.classList.remove('hidden');
+                            return;
                         }
-                        const n = Date.now();
-                        if (!seen[ev] || n - seen[ev] > 5000) { seen[ev] = n; vlog('حدث فيديو: ' + ev); }
+                        if (ev === 'canplay' || ev === 'loadeddata') {
+                            safePlayVideo(v, userWantsAudio);
+                        }
+                        if (ev !== 'timeupdate') {
+                            const n = Date.now();
+                            if (!seen[ev] || n - seen[ev] > 5000) { seen[ev] = n; vlog('حدث فيديو: ' + ev); }
+                        }
                     });
                 });
             })();
@@ -1173,18 +1156,32 @@
             (async () => {
                 const vid = document.getElementById('demoVideo');
                 const loadedFromCache = await useLocalVideo(true);
-                if (!loadedFromCache && vid) {
+                if (!loadedFromCache && vid && !videoDisabledOnDevice) {
                     swapVideoSource(VIDEO_CANDIDATES[0], false);
                 }
                 cacheVideoForOffline();
             })();
 
-            setInterval(cacheVideoForOffline, 90000);
-
             setInterval(() => {
                 const vid = document.getElementById('demoVideo');
-                if (vid && !vid.classList.contains('hidden') && vid.paused) {
+                if (!vid || vid.classList.contains('hidden') || videoDisabledOnDevice) return;
+                if (vid.error) {
+                    enableFallbackAnimation();
+                    return;
+                }
+                const t = vid.currentTime;
+                if (t !== lastObservedTime && t > 0.1) {
+                    lastObservedTime = t;
+                    stuckTicks = 0;
+                    return;
+                }
+                stuckTicks++;
+                if (vid.paused) {
                     safePlayVideo(vid, userWantsAudio);
+                }
+                if (stuckTicks >= 3 && vid.readyState < 3) {
+                    vlog('تحويل للخلفية المتحركة لتعذر فك تشفير الفيديو على الشاشة');
+                    enableFallbackAnimation();
                 }
             }, 4000);
 
@@ -1534,16 +1531,12 @@
 
         function toggleVideoAudio() {
             const vid = document.getElementById('demoVideo');
-            if (!vid) return;
-
-            userWantsAudio = !userWantsAudio;
-
-            if (vid.classList.contains('hidden')) {
-                useLocalVideo(true).then(ok => {
-                    if (!ok) swapVideoSource(VIDEO_CANDIDATES[candidateIndex % VIDEO_CANDIDATES.length], false);
-                });
+            if (!vid || videoDisabledOnDevice) {
+                syncAudioButtonUI();
+                return;
             }
 
+            userWantsAudio = !userWantsAudio;
             vid.muted = !userWantsAudio;
             if (userWantsAudio) {
                 try { vid.volume = 1.0; } catch (e) {}
@@ -1719,7 +1712,7 @@
 
         function handleVideoNetworkIssue() {
             const vid = document.getElementById('demoVideo');
-            if (vid) safePlayVideo(vid, userWantsAudio);
+            if (vid && !videoDisabledOnDevice) safePlayVideo(vid, userWantsAudio);
         }
 
         let videoErrorTimer = null;
@@ -1728,19 +1721,33 @@
         function handleVideoError() {
             const vid = document.getElementById('demoVideo');
             const errCode = vid && vid.error ? vid.error.code : '?';
-            vlog('خطأ فيديو code=' + errCode + ' محلي=' + videoIsLocal);
+            const wasBlob = !!(vid && ((vid.currentSrc || '').indexOf('blob:') === 0 || videoIsLocal));
+            vlog('خطأ فيديو code=' + errCode + ' محلي=' + wasBlob);
             clearTimeout(videoErrorTimer);
 
-            videoRetryCount++;
-
-            if (cachedBlobRef && cachedBlobRef.size > 0) {
-                videoErrorTimer = setTimeout(() => {
-                    useLocalVideo(true);
-                }, 1500);
+            if (wasBlob) {
+                localBlobRejected = true;
+                cachedBlobRef = null;
+                if (localVideoObjectUrl) {
+                    try { URL.revokeObjectURL(localVideoObjectUrl); } catch (e) {}
+                    localVideoObjectUrl = null;
+                }
+                videoIsLocal = false;
+                if (errCode === 4) {
+                    enableFallbackAnimation();
+                    return;
+                }
+                swapVideoSource(VIDEO_CANDIDATES[0], false);
                 return;
             }
 
-            if (videoRetryCount <= VIDEO_CANDIDATES.length * 2) {
+            if (errCode === 4) {
+                enableFallbackAnimation();
+                return;
+            }
+
+            videoRetryCount++;
+            if (videoRetryCount <= VIDEO_CANDIDATES.length) {
                 candidateIndex = (candidateIndex + 1) % VIDEO_CANDIDATES.length;
                 const nextSrc = VIDEO_CANDIDATES[candidateIndex];
                 videoErrorTimer = setTimeout(() => {
@@ -1750,38 +1757,25 @@
             }
 
             enableFallbackAnimation();
-            videoErrorTimer = setTimeout(() => {
-                videoRetryCount = 0;
-                cacheVideoForOffline();
-            }, 15000);
         }
-
-        (function () {
-            let last = -1, same = 0;
-            setInterval(() => {
-                const vid = document.getElementById('demoVideo');
-                if (!vid || vid.classList.contains('hidden')) return;
-                const t = vid.currentTime;
-                if (t !== last) { last = t; same = 0; return; }
-                same++;
-                if (same < 3) return;
-                same = 0;
-                if (cachedBlobRef && cachedBlobRef.size > 0) {
-                    useLocalVideo(false);
-                } else {
-                    safePlayVideo(vid, userWantsAudio);
-                }
-            }, 4000);
-        })();
 
         let fallbackAnimStarted = false;
         function enableFallbackAnimation() {
+            videoDisabledOnDevice = true;
+            clearTimeout(videoErrorTimer);
             const vid = document.getElementById('demoVideo');
+            const sourceEl = document.getElementById('demoVideoSource');
             const canvas = document.getElementById('fallbackCanvas');
             if (vid) {
-                try { vid.pause(); } catch (e) {}
+                try {
+                    vid.pause();
+                    if (sourceEl) sourceEl.removeAttribute('src');
+                    vid.removeAttribute('src');
+                    vid.load();
+                } catch (e) {}
                 vid.classList.add('hidden');
             }
+            syncAudioButtonUI();
             if (canvas) {
                 canvas.classList.remove('hidden');
                 if (fallbackAnimStarted) return;
