@@ -57,6 +57,7 @@ async function servePage(req) {
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
+  if (req.cache === 'no-store' || req.cache === 'reload') return;   // تنزيلات التحديث من الصفحة تذهب للشبكة مباشرة
   if (req.destination === 'video' || /\.mp4(\?|$)/i.test(req.url)) {
     e.respondWith(serveVideo(req));
   } else if (req.mode === 'navigate') {
