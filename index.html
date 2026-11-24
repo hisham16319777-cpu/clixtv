@@ -436,6 +436,13 @@
 
     <script>
         const VIDEO_URL = 'https://vjs.zencdn.net/v/oceans.mp4';
+        /* مصادر الفيديو بالترتيب: ?video=رابط ، ثم video.mp4 بجوار هذا الملف (الأضمن، بلا مشاكل CORS) ، ثم الرابط الخارجي */
+        const VIDEO_CANDIDATES = (function () {
+            const list = [];
+            try { const q = new URLSearchParams(location.search).get('video'); if (q) list.push(q); } catch (e) {}
+            list.push('video.mp4', VIDEO_URL);
+            return list;
+        })();
         const VIDEO_DB = 'clix_media_v1';
         const VIDEO_STORE = 'files';
         const VIDEO_KEY = 'main_video';
@@ -532,7 +539,7 @@
             if (videoCacheBroken) return false;
             try {
                 const rec = await idbGet(VIDEO_KEY);
-                if (rec && rec.blob && rec.blob.size > 0 && rec.url === VIDEO_URL) {
+                if (rec && rec.blob && rec.blob.size > 0 && VIDEO_CANDIDATES.indexOf(rec.url) !== -1) {
                     let blob = rec.blob;
                     /* بعض متصفحات webOS ترفض تشغيل Blob بدون نوع الملف */
                     if (!/^video\//.test(blob.type || '')) blob = new Blob([blob], { type: 'video/mp4' });
@@ -543,6 +550,36 @@
                 }
             } catch (e) { vlog('تعذر قراءة IndexedDB: ' + ((e && e.message) || e)); }
             return false;
+        }
+
+        async function downloadVideoFrom(url) {
+            const res = await fetch(url, { mode: 'cors' });
+            if (!res || !res.ok) throw new Error('HTTP ' + (res && res.status));
+            const ct = res.headers.get('content-type') || '';
+            if (/text\/html/i.test(ct)) throw new Error('الملف غير موجود');
+            const total = Number(res.headers.get('content-length')) || 0;
+            let blob;
+            if (res.body && res.body.getReader) {
+                const reader = res.body.getReader();
+                const chunks = [];
+                let got = 0, lastPct = -1;
+                for (;;) {
+                    const r = await reader.read();
+                    if (r.done) break;
+                    chunks.push(r.value);
+                    got += r.value.length;
+                    if (total) {
+                        const pct = Math.floor(got * 100 / total);
+                        if (pct !== lastPct && pct % 10 === 0) { lastPct = pct; setVideoStatus('تنزيل الفيديو ' + pct + '%', 'busy'); }
+                    }
+                }
+                blob = new Blob(chunks, { type: 'video/mp4' });
+            } else {
+                blob = await res.blob();
+                if (!/^video\//.test(blob.type || '')) blob = new Blob([blob], { type: 'video/mp4' });
+            }
+            if (!blob || !blob.size) throw new Error('الملف فارغ');
+            return blob;
         }
 
         async function cacheVideoForOffline() {
@@ -557,35 +594,19 @@
                         vlog('مساحة التخزين: ' + Math.round((est.usage || 0) / 1048576) + 'MB من ' + Math.round((est.quota || 0) / 1048576) + 'MB');
                     }
                 } catch (e) {}
-                const res = await fetch(VIDEO_URL, { mode: 'cors' });
-                if (!res || !res.ok) throw new Error('HTTP ' + (res && res.status));
-                const total = Number(res.headers.get('content-length')) || 0;
-                let blob;
-                if (res.body && res.body.getReader) {
-                    const reader = res.body.getReader();
-                    const chunks = [];
-                    let got = 0, lastPct = -1;
-                    for (;;) {
-                        const r = await reader.read();
-                        if (r.done) break;
-                        chunks.push(r.value);
-                        got += r.value.length;
-                        if (total) {
-                            const pct = Math.floor(got * 100 / total);
-                            if (pct !== lastPct && pct % 10 === 0) { lastPct = pct; setVideoStatus('تنزيل الفيديو ' + pct + '%', 'busy'); }
-                        }
-                    }
-                    blob = new Blob(chunks, { type: 'video/mp4' });
-                } else {
-                    blob = await res.blob();
-                    if (!/^video\//.test(blob.type || '')) blob = new Blob([blob], { type: 'video/mp4' });
+                let blob = null, usedUrl = null, lastErr = null;
+                for (const url of VIDEO_CANDIDATES) {
+                    try { blob = await downloadVideoFrom(url); usedUrl = url; break; }
+                    catch (e) { lastErr = e; vlog('تعذر التنزيل من ' + url + ' : ' + ((e && e.message) || e)); }
                 }
-                if (!blob || !blob.size) throw new Error('الملف فارغ');
-                await idbPut(VIDEO_KEY, { url: VIDEO_URL, blob: blob, savedAt: Date.now() });
+                if (!blob) throw lastErr || new Error('لا يوجد مصدر');
+                await idbPut(VIDEO_KEY, { url: usedUrl, blob: blob, savedAt: Date.now() });
                 const ok = await useLocalVideo();
                 if (!ok) setVideoStatus('تم الحفظ لكن تعذر قراءته', 'err');
             } catch (e) {
-                const why = (e && e.name === 'QuotaExceededError') ? 'مساحة التخزين ممتلئة' : ((e && e.message) || String(e));
+                let why = (e && e.message) || String(e);
+                if (e && e.name === 'QuotaExceededError') why = 'مساحة التخزين ممتلئة';
+                else if (/Failed to fetch|NetworkError|Load failed/i.test(why)) why = 'السيرفر يمنع التنزيل (CORS) أو لا يوجد اتصال. ضع الفيديو بجوار الصفحة باسم video.mp4';
                 setVideoStatus('الفيديو غير محفوظ: ' + why, 'err');
             } finally {
                 videoDownloading = false;
