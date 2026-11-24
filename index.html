@@ -16,7 +16,6 @@
         ];
         function lsGet(k) { try { return localStorage.getItem(PFX + k); } catch (e) { return null; } }
         function lsSet(k, v) { try { localStorage.setItem(PFX + k, v); return true; } catch (e) { return false; } }
-        var missing = [];
         ASSETS.forEach(function (a) {
             var cached = lsGet(a.k);
             if (cached) {
@@ -33,7 +32,6 @@
                     return;
                 } catch (e) {}
             }
-            missing.push(a);
             if (a.t === 'js') document.write('<script src="' + a.u + '"><\/script>');
             else document.write('<link rel="stylesheet" href="' + a.u + '">');
         });
@@ -57,8 +55,8 @@
             while ((m = re.exec(css))) {
                 var raw = m[1];
                 if (/^data:/i.test(raw)) continue;
-                if (/\.(ttf|eot|woff)(\?|#|$)/i.test(raw) && !/woff2/i.test(raw)) continue; /* نكتفي بصيغة woff2 */
-                if (/fa-brands/i.test(raw)) continue;                                        /* أيقونات الماركات غير مستخدمة */
+                if (/\.(ttf|eot|woff)(\?|#|$)/i.test(raw) && !/woff2/i.test(raw)) continue;
+                if (/fa-brands/i.test(raw)) continue;
                 var abs; try { abs = new URL(raw, base).href; } catch (e) { continue; }
                 if (urls.indexOf(abs) === -1) urls.push(abs);
             }
@@ -78,7 +76,6 @@
                 try {
                     var text = await fetchText(a.u);
                     if (a.t === 'css') {
-                        /* حوّل الروابط النسبية إلى مطلقة أولاً ثم ضمّن الخطوط */
                         text = text.replace(/url\(\s*['"]?(?!data:|https?:|\/\/)([^'")]+)['"]?\s*\)/g, function (all, rel) {
                             try { return 'url(' + new URL(rel, a.u).href + ')'; } catch (e) { return all; }
                         });
@@ -202,7 +199,7 @@
 <body class="bg-slate-950 text-white h-screen overflow-hidden flex flex-col justify-between select-none">
 
     <video id="demoVideo" autoplay loop muted playsinline preload="auto" class="fullscreen-bg" onerror="handleVideoError()" onstalled="handleVideoNetworkIssue()" onabort="handleVideoNetworkIssue()" onwaiting="handleVideoNetworkIssue()">
-        <source id="demoVideoSource" src="https://vjs.zencdn.net/v/oceans.mp4" type="video/mp4">
+        <source id="demoVideoSource" src="video.mp4" type="video/mp4">
     </video>
 
     <canvas id="fallbackCanvas" class="fullscreen-bg hidden"></canvas>
@@ -299,7 +296,7 @@
         </button>
     </footer>
 
-    <!-- نافذة عرض المواصفات الكاملة المتوسطة والمضاعفة الحجم -->
+    <!-- نافذة عرض المواصفات الكاملة -->
     <div id="specsFullscreenModal" class="fixed inset-0 bg-slate-950/92 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
         <div id="specsFullscreenContent" class="w-[94vw] max-w-5xl bg-slate-900/98 border-2 border-blue-500/50 rounded-3xl p-6 md:p-8 shadow-[0_0_60px_rgba(37,99,235,0.45)] max-h-[92vh] overflow-y-auto flex flex-col justify-between gap-6">
         </div>
@@ -345,7 +342,6 @@
                 </button>
             </div>
 
-            <!-- حالة المزامنة التلقائية -->
             <div class="bg-gradient-to-r from-emerald-950/60 to-slate-900 border border-emerald-500/50 p-4 rounded-xl mb-6 shadow-lg">
                 <h4 class="font-bold text-emerald-300 text-sm mb-1.5 flex items-center gap-2">
                     <i class="fa-solid fa-bolt text-emerald-400"></i> التحديث التلقائي المباشر وتشغيل الفيديو أوفلاين مفعل بنجاح
@@ -355,7 +351,6 @@
                 </p>
             </div>
 
-            <!-- إعدادات الباسورد -->
             <div class="bg-gradient-to-r from-amber-950/40 to-slate-900 border border-amber-500/40 p-4 rounded-xl mb-6 shadow-lg">
                 <h4 class="font-bold text-amber-300 text-sm mb-3 flex items-center gap-2">
                     <i class="fa-solid fa-key text-amber-400"></i> إعدادات الرموز السرية (تُعمم فوراً)
@@ -374,7 +369,6 @@
                 </div>
             </div>
 
-            <!-- رفع إكسل التحديث -->
             <div class="bg-gradient-to-r from-blue-900/40 to-slate-900 border border-blue-500/40 p-4 rounded-xl mb-6 shadow-lg">
                 <div class="flex flex-col md:flex-row items-center justify-between gap-4">
                     <div>
@@ -384,16 +378,6 @@
                         </h4>
                         <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">
                             ملاحظة مهمة: احفظ ملف الإكسل بصيغة <span class="text-emerald-300 font-bold">CSV UTF-8</span> لضمان ظهور الحروف العربية بشكل سليم دون رموز.
-                            الأعمدة المدعومة: <span class="text-amber-300 font-mono font-bold">sku</span>،
-                            <span class="text-pink-300 font-mono font-bold">size / CSIZE</span> (المقاس)،
-                            <span class="text-emerald-300 font-mono font-bold">promo_price</span>،
-                            <span class="text-slate-300 font-mono font-bold">original_price</span>،
-                            <span class="text-cyan-300 font-mono font-bold">specsAr / specs</span>،
-                            <span class="text-white font-mono font-bold">titleAr</span>،
-                            <span class="text-blue-300 font-mono font-bold">titleEn / model</span>،
-                            <span class="text-amber-200 font-mono font-bold">originAr / origin</span>،
-                            <span class="text-indigo-300 font-mono font-bold">refreshRate / hz</span>،
-                            <span class="text-purple-300 font-mono font-bold">osSystem / os</span>
                         </p>
                     </div>
                     <label tabindex="0" class="tv-focusable bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl cursor-pointer transition shadow-lg flex items-center gap-2 whitespace-nowrap">
@@ -436,23 +420,26 @@
 
     <script>
         const VIDEO_URL = 'https://vjs.zencdn.net/v/oceans.mp4';
-        /* مصادر الفيديو بالترتيب: ?video=رابط ، ثم video.mp4 بجوار هذا الملف (الأضمن، بلا مشاكل CORS) ، ثم الرابط الخارجي */
+        /* الأولوية لملف video.mp4 المرفوع على الاستضافة بجوار index.html */
         const VIDEO_CANDIDATES = (function () {
             const list = [];
             try { const q = new URLSearchParams(location.search).get('video'); if (q) list.push(q); } catch (e) {}
-            list.push('video.mp4', VIDEO_URL);
-            return list;
+            list.push('video.mp4', './video.mp4', VIDEO_URL);
+            return Array.from(new Set(list));
         })();
-        const VIDEO_DB = 'clix_media_v1';
+        const VIDEO_DB = 'clix_media_v2';
         const VIDEO_STORE = 'files';
         const VIDEO_KEY = 'main_video';
 
-        /* ---- تخزين الفيديو كاملاً داخل IndexedDB ليعمل بدون إنترنت ---- */
         function idbOpen() {
             return new Promise((resolve, reject) => {
                 if (!window.indexedDB) return reject(new Error('no idb'));
                 const r = indexedDB.open(VIDEO_DB, 1);
-                r.onupgradeneeded = () => { r.result.createObjectStore(VIDEO_STORE); };
+                r.onupgradeneeded = () => {
+                    if (!r.result.objectStoreNames.contains(VIDEO_STORE)) {
+                        r.result.createObjectStore(VIDEO_STORE);
+                    }
+                };
                 r.onsuccess = () => resolve(r.result);
                 r.onerror = () => reject(r.error);
             });
@@ -480,32 +467,10 @@
         let videoIsLocal = false;
         let videoDownloading = false;
         let localVideoObjectUrl = null;
-
-        function swapVideoSource(url) {
-            const vid = document.getElementById('demoVideo');
-            const sourceEl = document.getElementById('demoVideoSource');
-            const canvas = document.getElementById('fallbackCanvas');
-            if (!vid) return;
-            const t = vid.currentTime || 0;
-            if (localVideoObjectUrl) { try { URL.revokeObjectURL(localVideoObjectUrl); } catch (e) {} }
-            localVideoObjectUrl = url;
-            if (sourceEl) sourceEl.src = url;
-            vid.src = url;
-            vid.loop = true;
-            const onMeta = () => {
-                vid.removeEventListener('loadedmetadata', onMeta);
-                try { if (t && vid.duration && isFinite(vid.duration)) vid.currentTime = t % vid.duration; } catch (e) {}
-            };
-            vid.addEventListener('loadedmetadata', onMeta);
-            if (canvas) canvas.classList.add('hidden');
-            vid.classList.remove('hidden');
-            try { vid.load(); } catch (e) {}
-            const p = vid.play();
-            if (p && p.catch) p.catch(() => {});
-        }
+        let cachedBlobRef = null;
+        let candidateIndex = 0;
 
         function vlog(m) { try { if (window.clixLog) window.clixLog(m); } catch (e) {} }
-        let videoCacheBroken = false;
         let statusHideTimer = null;
         function setVideoStatus(text, kind) {
             let el = document.getElementById('videoCacheBadge');
@@ -521,110 +486,158 @@
             el.textContent = text;
             el.style.opacity = '1';
             clearTimeout(statusHideTimer);
-            if (kind === 'ok') statusHideTimer = setTimeout(() => { el.style.opacity = '0'; }, 15000);
+            if (kind === 'ok') statusHideTimer = setTimeout(() => { el.style.opacity = '0'; }, 12000);
             vlog('حالة الفيديو: ' + text);
         }
-        async function idbDelete(key) {
-            const db = await idbOpen();
-            return new Promise((resolve) => {
-                const tx = db.transaction(VIDEO_STORE, 'readwrite');
-                tx.objectStore(VIDEO_STORE).delete(key);
-                tx.oncomplete = () => resolve(true);
-                tx.onerror = () => resolve(false);
-            });
+
+        function safePlayVideo(vid) {
+            if (!vid) return;
+            vid.muted = true;
+            vid.loop = true;
+            vid.playsInline = true;
+            try {
+                const p = vid.play();
+                if (p && typeof p.catch === 'function') p.catch(() => {});
+            } catch (e) {}
         }
 
-        async function useLocalVideo() {
-            if (videoIsLocal) return true;
-            if (videoCacheBroken) return false;
+        function swapVideoSource(url, isLocalBlob = false) {
+            const vid = document.getElementById('demoVideo');
+            const sourceEl = document.getElementById('demoVideoSource');
+            const canvas = document.getElementById('fallbackCanvas');
+            if (!vid || !url) return;
+
+            const prevTime = vid.currentTime || 0;
+            if (localVideoObjectUrl && localVideoObjectUrl !== url && localVideoObjectUrl.startsWith('blob:')) {
+                try { URL.revokeObjectURL(localVideoObjectUrl); } catch (e) {}
+            }
+            if (url.startsWith('blob:')) {
+                localVideoObjectUrl = url;
+            }
+            videoIsLocal = !!isLocalBlob;
+
+            if (sourceEl) sourceEl.src = url;
+            vid.src = url;
+
+            const onLoaded = () => {
+                vid.removeEventListener('loadedmetadata', onLoaded);
+                try {
+                    if (prevTime > 0 && vid.duration && isFinite(vid.duration) && vid.duration > 1) {
+                        vid.currentTime = prevTime % vid.duration;
+                    }
+                } catch (e) {}
+                safePlayVideo(vid);
+            };
+            vid.addEventListener('loadedmetadata', onLoaded);
+
+            if (canvas) canvas.classList.add('hidden');
+            vid.classList.remove('hidden');
+            try { vid.load(); } catch (e) {}
+            safePlayVideo(vid);
+        }
+
+        async function useLocalVideo(forceNewUrl = false) {
             try {
-                const rec = await idbGet(VIDEO_KEY);
-                if (rec && rec.blob && rec.blob.size > 0 && VIDEO_CANDIDATES.indexOf(rec.url) !== -1) {
-                    let blob = rec.blob;
-                    /* بعض متصفحات webOS ترفض تشغيل Blob بدون نوع الملف */
-                    if (!/^video\//.test(blob.type || '')) blob = new Blob([blob], { type: 'video/mp4' });
-                    swapVideoSource(URL.createObjectURL(blob));
-                    videoIsLocal = true;
+                if (!cachedBlobRef) {
+                    const rec = await idbGet(VIDEO_KEY);
+                    if (rec && rec.blob && rec.blob.size > 0) {
+                        cachedBlobRef = /^video\//.test(rec.blob.type || '')
+                            ? rec.blob
+                            : new Blob([rec.blob], { type: 'video/mp4' });
+                    }
+                }
+                if (cachedBlobRef && cachedBlobRef.size > 0) {
+                    if (forceNewUrl || !localVideoObjectUrl) {
+                        const freshUrl = URL.createObjectURL(cachedBlobRef);
+                        swapVideoSource(freshUrl, true);
+                    } else {
+                        swapVideoSource(localVideoObjectUrl, true);
+                    }
                     setVideoStatus('الفيديو محفوظ ✓ يعمل بدون إنترنت', 'ok');
                     return true;
                 }
-            } catch (e) { vlog('تعذر قراءة IndexedDB: ' + ((e && e.message) || e)); }
+            } catch (e) {
+                vlog('تعذر قراءة الفيديو المحفوظ: ' + ((e && e.message) || e));
+            }
             return false;
         }
 
         async function downloadVideoFrom(url) {
-            const res = await fetch(url, { mode: 'cors' });
-            if (!res || !res.ok) throw new Error('HTTP ' + (res && res.status));
-            const ct = res.headers.get('content-type') || '';
-            if (/text\/html/i.test(ct)) throw new Error('الملف غير موجود');
-            const total = Number(res.headers.get('content-length')) || 0;
-            let blob;
-            if (res.body && res.body.getReader) {
-                const reader = res.body.getReader();
-                const chunks = [];
-                let got = 0, lastPct = -1;
-                for (;;) {
-                    const r = await reader.read();
-                    if (r.done) break;
-                    chunks.push(r.value);
-                    got += r.value.length;
-                    if (total) {
-                        const pct = Math.floor(got * 100 / total);
-                        if (pct !== lastPct && pct % 10 === 0) { lastPct = pct; setVideoStatus('تنزيل الفيديو ' + pct + '%', 'busy'); }
+            const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+            const timer = controller ? setTimeout(() => controller.abort(), 25000) : null;
+            try {
+                const res = await fetch(url, {
+                    mode: 'cors',
+                    cache: 'default',
+                    signal: controller ? controller.signal : undefined
+                });
+                if (!res || !res.ok) throw new Error('HTTP ' + (res && res.status));
+                const ct = (res.headers.get('content-type') || '').toLowerCase();
+                if (ct.includes('text/html')) throw new Error('الملف غير موجود');
+
+                const total = Number(res.headers.get('content-length')) || 0;
+                let blob;
+                if (res.body && res.body.getReader) {
+                    const reader = res.body.getReader();
+                    const chunks = [];
+                    let got = 0, lastPct = -1;
+                    for (;;) {
+                        const r = await reader.read();
+                        if (r.done) break;
+                        chunks.push(r.value);
+                        got += r.value.length;
+                        if (total) {
+                            const pct = Math.floor(got * 100 / total);
+                            if (pct !== lastPct && pct % 15 === 0) {
+                                lastPct = pct;
+                                setVideoStatus('تنزيل الفيديو للعمل أوفلاين ' + pct + '%', 'busy');
+                            }
+                        }
                     }
+                    const mime = /^video\//.test(ct) ? ct : 'video/mp4';
+                    blob = new Blob(chunks, { type: mime });
+                } else {
+                    const rawBlob = await res.blob();
+                    const mime = /^video\//.test(rawBlob.type || '') ? rawBlob.type : 'video/mp4';
+                    blob = new Blob([rawBlob], { type: mime });
                 }
-                blob = new Blob(chunks, { type: 'video/mp4' });
-            } else {
-                blob = await res.blob();
-                if (!/^video\//.test(blob.type || '')) blob = new Blob([blob], { type: 'video/mp4' });
+                if (!blob || blob.size < 1024) throw new Error('ملف الفيديو فارغ أو غير مكتمل');
+                return blob;
+            } finally {
+                if (timer) clearTimeout(timer);
             }
-            if (!blob || !blob.size) throw new Error('الملف فارغ');
-            return blob;
         }
 
         async function cacheVideoForOffline() {
-            if (videoIsLocal || videoDownloading || videoCacheBroken) return;
+            if (videoDownloading) return;
+            if (cachedBlobRef && cachedBlobRef.size > 0) {
+                if (!videoIsLocal) await useLocalVideo(false);
+                return;
+            }
             videoDownloading = true;
-            setVideoStatus('جاري تنزيل الفيديو للعمل بدون إنترنت...', 'busy');
             try {
                 try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
-                try {
-                    if (navigator.storage && navigator.storage.estimate) {
-                        const est = await navigator.storage.estimate();
-                        vlog('مساحة التخزين: ' + Math.round((est.usage || 0) / 1048576) + 'MB من ' + Math.round((est.quota || 0) / 1048576) + 'MB');
-                    }
-                } catch (e) {}
-                let blob = null, usedUrl = null, lastErr = null;
+                let blob = null, usedUrl = null;
                 for (const url of VIDEO_CANDIDATES) {
-                    try { blob = await downloadVideoFrom(url); usedUrl = url; break; }
-                    catch (e) { lastErr = e; vlog('تعذر التنزيل من ' + url + ' : ' + ((e && e.message) || e)); }
+                    try {
+                        blob = await downloadVideoFrom(url);
+                        usedUrl = url;
+                        break;
+                    } catch (e) {
+                        vlog('تعذر تنزيل ' + url + ' : ' + ((e && e.message) || e));
+                    }
                 }
-                if (!blob) throw lastErr || new Error('لا يوجد مصدر');
-                await idbPut(VIDEO_KEY, { url: usedUrl, blob: blob, savedAt: Date.now() });
-                const ok = await useLocalVideo();
-                if (!ok) setVideoStatus('تم الحفظ لكن تعذر قراءته', 'err');
-            } catch (e) {
-                let why = (e && e.message) || String(e);
-                if (e && e.name === 'QuotaExceededError') why = 'مساحة التخزين ممتلئة';
-                else if (/Failed to fetch|NetworkError|Load failed/i.test(why)) why = 'السيرفر يمنع التنزيل (CORS) أو لا يوجد اتصال. ضع الفيديو بجوار الصفحة باسم video.mp4';
-                setVideoStatus('الفيديو غير محفوظ: ' + why, 'err');
+                if (blob) {
+                    cachedBlobRef = blob;
+                    try {
+                        await idbPut(VIDEO_KEY, { url: usedUrl, blob: blob, savedAt: Date.now() });
+                    } catch (e) {
+                        vlog('تعذر حفظ الفيديو في IndexedDB: ' + ((e && e.message) || e));
+                    }
+                    await useLocalVideo(true);
+                }
             } finally {
                 videoDownloading = false;
-            }
-        }
-
-        /* تشغيل الفيديو: النسخة المحلية إن وجدت، وإلا المباشر. لا نعيد تحميل الفيديو أثناء تشغيله أبداً */
-        async function playVideoUsingCacheOrLive() {
-            const vid = document.getElementById('demoVideo');
-            const canvas = document.getElementById('fallbackCanvas');
-            if (!vid) return;
-            await useLocalVideo();
-            if (vid.paused || vid.ended) {
-                try {
-                    await vid.play();
-                    if (canvas) canvas.classList.add('hidden');
-                    vid.classList.remove('hidden');
-                } catch (e) {}
             }
         }
 
@@ -678,7 +691,7 @@
         const CLOUD_STORAGE_KEY = 'clix_direct_cloud_sync_master_db';
 
         function isOnlineNow() {
-            return true; /* navigator.onLine غير موثوق على شاشات webOS؛ نعتمد على نجاح/فشل الطلبات نفسها */
+            return true;
         }
 
         function getCloudUrl() {
@@ -727,8 +740,8 @@
         saveLocalMasterData(appData);
 
         let selectedBrandId = localStorage.getItem('clix_selected_brand') || appData.brands[0]?.id || 'samsung';
-        let displayedSkuPerBrand = JSON.parse(localStorage.getItem('clix_displayed_skus')) || {};
-        let hiddenSkusPerBrand = JSON.parse(localStorage.getItem('clix_hidden_skus')) || {};
+        let displayedSkuPerBrand = JSON.parse(localStorage.getItem('clix_displayed_skus') || '{}') || {};
+        let hiddenSkusPerBrand = JSON.parse(localStorage.getItem('clix_hidden_skus') || '{}') || {};
         let currentInspectedSku = null;
 
         function getHiddenSkusForBrand(brandId) {
@@ -871,11 +884,6 @@
                 updateSyncBadge('ok', 'محلي (يعمل بدون إنترنت)');
                 return;
             }
-            if (!isOnlineNow()) {
-                pushPending = true;
-                updateSyncBadge('offline', 'بدون إنترنت - محفوظ محلياً');
-                return;
-            }
             updateSyncBadge('syncing', 'جاري التعميم المباشر...');
             pushPending = true;
             flushPush();
@@ -883,14 +891,10 @@
 
         async function flushPush() {
             if (pushInFlight) return;
-            if (!isOnlineNow()) {
-                updateSyncBadge('offline', 'بدون إنترنت - محفوظ محلياً');
-                return;
-            }
             pushInFlight = true;
             clearTimeout(retryTimer);
             try {
-                while (pushPending && isOnlineNow()) {
+                while (pushPending) {
                     pushPending = false;
                     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
                     const timeoutId = controller ? setTimeout(() => controller.abort(), 5000) : null;
@@ -903,15 +907,11 @@
                     if (timeoutId) clearTimeout(timeoutId);
                     if (!res.ok) throw new Error('HTTP ' + res.status);
                 }
-                if (isOnlineNow()) updateSyncBadge('ok', 'متصل بالسحابة المركزية');
+                updateSyncBadge('ok', 'متصل بالسحابة المركزية');
             } catch (err) {
                 pushPending = true;
-                if (!isOnlineNow()) {
-                    updateSyncBadge('offline', 'بدون إنترنت - محفوظ محلياً');
-                } else {
-                    updateSyncBadge('error', 'وضع محلي مؤقت - إعادة المحاولة...');
-                    retryTimer = setTimeout(flushPush, 6000);
-                }
+                updateSyncBadge('offline', 'بدون إنترنت - محفوظ محلياً');
+                retryTimer = setTimeout(flushPush, 8000);
             } finally {
                 pushInFlight = false;
             }
@@ -960,38 +960,36 @@
         }
 
         async function pullFromCloudNow() {
-            if (!isOnlineNow()) {
-                updateSyncBadge('offline', 'بدون إنترنت - يعمل محلياً');
+            const localSnapshot = loadLocalMasterData();
+            if (localSnapshot && (localSnapshot.lastUpdated || 0) >= (appData.lastUpdated || 0)) {
+                appData = localSnapshot;
+                renderShowroomDisplay();
+            }
+
+            if (!getCloudUrl()) {
+                updateSyncBadge('ok', 'محلي (يعمل بدون إنترنت)');
                 return;
             }
+
             try {
-                if (getCloudUrl()) {
-                    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-                    const timeoutId = controller ? setTimeout(() => controller.abort(), 5000) : null;
-                    const res = await fetch(getCloudUrl() + CLOUD_DB_PATH + '?_=' + Date.now(), {
-                        cache: 'no-store',
-                        signal: controller ? controller.signal : undefined
-                    });
-                    if (timeoutId) clearTimeout(timeoutId);
-                    if (!res.ok) throw new Error('HTTP ' + res.status);
-                    handleCloudSnapshot(await res.json());
-                    if (!pushInFlight && !pushPending && isOnlineNow()) updateSyncBadge('ok', 'متصل بالسحابة المركزية');
-                } else {
-                    const cloudDataStr = localStorage.getItem(CLOUD_STORAGE_KEY);
-                    if (cloudDataStr) applyRemoteData(JSON.parse(cloudDataStr), false);
-                }
+                const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+                const timeoutId = controller ? setTimeout(() => controller.abort(), 5000) : null;
+                const res = await fetch(getCloudUrl() + CLOUD_DB_PATH + '?_=' + Date.now(), {
+                    cache: 'no-store',
+                    signal: controller ? controller.signal : undefined
+                });
+                if (timeoutId) clearTimeout(timeoutId);
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                handleCloudSnapshot(await res.json());
+                if (!pushInFlight && !pushPending) updateSyncBadge('ok', 'متصل بالسحابة المركزية');
             } catch (err) {
-                if (!isOnlineNow()) {
-                    updateSyncBadge('offline', 'بدون إنترنت - يعمل محلياً');
-                } else if (getCloudUrl()) {
-                    updateSyncBadge('offline', 'يعمل بالبيانات المحفوظة محلياً');
-                }
+                updateSyncBadge('offline', 'يعمل بالبيانات المحفوظة محلياً');
             }
         }
 
         let cloudStream = null, streamAlive = false;
         function startCloudStream() {
-            if (!getCloudUrl() || typeof EventSource === 'undefined' || !isOnlineNow()) return;
+            if (!getCloudUrl() || typeof EventSource === 'undefined') return;
             try {
                 if (cloudStream) {
                     try { cloudStream.close(); } catch (e) {}
@@ -1008,12 +1006,7 @@
                 cloudStream.addEventListener('patch', () => pullFromCloudNow());
                 cloudStream.onerror = () => {
                     streamAlive = false;
-                    if (!isOnlineNow()) {
-                        try { cloudStream.close(); } catch (e) {}
-                        updateSyncBadge('offline', 'بدون إنترنت - يعمل محلياً');
-                        return;
-                    }
-                    if (cloudStream && cloudStream.readyState === 2) setTimeout(startCloudStream, 7000);
+                    updateSyncBadge('offline', 'يعمل بالبيانات المحفوظة محلياً');
                 };
             } catch (e) { streamAlive = false; }
         }
@@ -1023,6 +1016,8 @@
             if (cloudStream) {
                 try { cloudStream.close(); } catch (e) {}
             }
+            appData = loadLocalMasterData();
+            renderShowroomDisplay();
             updateSyncBadge('offline', 'بدون إنترنت - يعمل محلياً');
         }
 
@@ -1033,8 +1028,14 @@
             if (pushPending) flushPush();
             cacheVideoForOffline();
             const vid = document.getElementById('demoVideo');
-            if (vid && vid.paused) {
-                vid.play().catch(() => {});
+            if (vid) {
+                if (vid.classList.contains('hidden')) {
+                    useLocalVideo(true).then(ok => {
+                        if (!ok) swapVideoSource(VIDEO_CANDIDATES[candidateIndex % VIDEO_CANDIDATES.length], false);
+                    });
+                } else {
+                    safePlayVideo(vid);
+                }
             }
         }
 
@@ -1042,21 +1043,32 @@
             window.addEventListener('offline', handleOfflineEvent);
             window.addEventListener('online', handleOnlineEvent);
 
-            if (!isOnlineNow()) {
-                handleOfflineEvent();
-            } else if (getCloudUrl()) {
-                updateSyncBadge('syncing', 'جاري الاتصال بالسحابة...');
+            if (getCloudUrl()) {
                 pullFromCloudNow();
                 startCloudStream();
-                setInterval(() => { if (isOnlineNow() && !streamAlive) pullFromCloudNow(); }, 20000);
-                document.addEventListener('visibilitychange', () => { if (!document.hidden && isOnlineNow()) pullFromCloudNow(); });
+                setInterval(() => { if (!streamAlive) pullFromCloudNow(); }, 20000);
+                document.addEventListener('visibilitychange', () => {
+                    if (!document.hidden) {
+                        appData = loadLocalMasterData();
+                        renderShowroomDisplay();
+                        pullFromCloudNow();
+                    }
+                });
             } else {
                 updateSyncBadge('ok', 'محلي (يعمل بدون إنترنت)');
-                setInterval(pullFromCloudNow, 4000);
-                window.addEventListener('storage', (e) => {
-                    if (e.key === CLOUD_STORAGE_KEY && e.newValue) pullFromCloudNow();
-                });
             }
+            setInterval(() => {
+                const latest = loadLocalMasterData();
+                if (latest && JSON.stringify(latest) !== JSON.stringify(appData)) {
+                    appData = latest;
+                    renderShowroomDisplay();
+                }
+            }, 3000);
+            window.addEventListener('storage', (e) => {
+                if (e.key === CLOUD_STORAGE_KEY && e.newValue) {
+                    applyRemoteData(JSON.parse(e.newValue), false);
+                }
+            });
             initAdminLiveEditing();
         }
 
@@ -1119,30 +1131,37 @@
             (() => {
                 const v = document.getElementById('demoVideo');
                 const seen = {};
-                ['waiting', 'stalled', 'abort', 'emptied'].forEach((ev) => {
+                ['waiting', 'stalled', 'abort', 'emptied', 'canplay'].forEach((ev) => {
                     if (v) v.addEventListener(ev, () => {
+                        if (ev === 'canplay') {
+                            safePlayVideo(v);
+                            const canvas = document.getElementById('fallbackCanvas');
+                            if (canvas) canvas.classList.add('hidden');
+                            v.classList.remove('hidden');
+                        }
                         const n = Date.now();
                         if (!seen[ev] || n - seen[ev] > 5000) { seen[ev] = n; vlog('حدث فيديو: ' + ev); }
                     });
                 });
             })();
+
             (async () => {
                 const vid = document.getElementById('demoVideo');
-                await useLocalVideo();
-                if (vid) {
-                    vid.muted = true;
-                    vid.play().catch(() => {});
+                const loadedFromCache = await useLocalVideo(true);
+                if (!loadedFromCache && vid) {
+                    swapVideoSource(VIDEO_CANDIDATES[0], false);
                 }
                 cacheVideoForOffline();
             })();
-            setInterval(cacheVideoForOffline, 120000);
+
+            setInterval(cacheVideoForOffline, 90000);
 
             setInterval(() => {
                 const vid = document.getElementById('demoVideo');
                 if (vid && !vid.classList.contains('hidden') && vid.paused) {
-                    vid.play().catch(() => {});
+                    safePlayVideo(vid);
                 }
-            }, 5000);
+            }, 4000);
 
             setTimeout(() => {
                 const firstFocus = document.getElementById('brandSelectBtn');
@@ -1336,7 +1355,6 @@
 
             const contentEl = document.getElementById('specsFullscreenContent');
             contentEl.innerHTML = `
-                <!-- رأس النافذة الكاملة -->
                 <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-5">
                     <div class="flex items-center gap-4">
                         <div class="bg-blue-600/20 border border-blue-400/40 rounded-2xl px-5 py-3 text-center">
@@ -1361,7 +1379,6 @@
                     </button>
                 </div>
 
-                <!-- شبكة المواصفات الكاملة -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4">
                         <div class="text-xs text-slate-400 font-bold mb-1">الموديل</div>
@@ -1381,7 +1398,6 @@
                     </div>
                 </div>
 
-                <!-- قسم المواصفات التفصيلية الكاملة بدون اقتصاص -->
                 <div class="bg-slate-950/90 border border-slate-800 rounded-2xl p-5 md:p-6">
                     <h3 class="text-base md:text-lg font-black text-amber-300 mb-3 flex items-center gap-2">
                         <i class="fa-solid fa-list-check"></i>
@@ -1397,7 +1413,6 @@
                     </div>
                 </div>
 
-                <!-- الضمان والضمان الذهبي والأسعار -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
                     <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 flex flex-col justify-center">
                         <div class="text-xs text-slate-400 font-bold mb-1">الضمان الرسمي</div>
@@ -1496,10 +1511,10 @@
             const vid = document.getElementById('demoVideo');
             const icon = document.getElementById('audioIcon');
             const text = document.getElementById('audioText');
-            if (!vid || vid.classList.contains('hidden')) return;
+            if (!vid) return;
             if (vid.muted) {
                 vid.muted = false;
-                vid.play().catch(() => enableFallbackAnimation());
+                safePlayVideo(vid);
                 icon.className = "fa-solid fa-volume-high text-emerald-400";
                 text.innerText = "كتم الصوت";
             } else {
@@ -1675,56 +1690,61 @@
         }
 
         function handleVideoNetworkIssue() {
-            /* لا نعيد تحميل الفيديو (load) أبداً هنا؛ فقط نكمل التشغيل من المخزن المؤقت */
             const vid = document.getElementById('demoVideo');
-            if (vid && vid.paused) vid.play().catch(() => {});
+            if (vid) safePlayVideo(vid);
         }
 
         let videoErrorTimer = null;
-        let localVideoErrors = 0;
+        let videoRetryCount = 0;
+
         function handleVideoError() {
             const vid = document.getElementById('demoVideo');
-            vlog('خطأ فيديو code=' + (vid && vid.error ? vid.error.code : '?') + ' محلي=' + videoIsLocal);
+            const errCode = vid && vid.error ? vid.error.code : '?';
+            vlog('خطأ فيديو code=' + errCode + ' محلي=' + videoIsLocal);
             clearTimeout(videoErrorTimer);
-            if (videoIsLocal) {
-                localVideoErrors++;
-                if (localVideoErrors >= 3) {
-                    /* الفيديو المحفوظ لا يعمل على هذه الشاشة: نتخلى عنه ونعرض الخلفية البديلة بدل الشاشة السوداء */
-                    videoIsLocal = false;
-                    videoCacheBroken = true;
-                    localVideoErrors = 0;
-                    idbDelete(VIDEO_KEY).catch(() => {});
-                    enableFallbackAnimation();
-                    setVideoStatus('الفيديو المحفوظ لا يعمل على هذه الشاشة', 'err');
-                    return;
-                }
+
+            videoRetryCount++;
+
+            /* إذا كان هناك فيديو محفوظ أو Blob، نعيد تشغيله دون حذفه */
+            if (cachedBlobRef && cachedBlobRef.size > 0) {
                 videoErrorTimer = setTimeout(() => {
-                    if (vid) { try { vid.load(); vid.play().catch(() => {}); } catch (e) {} }
-                }, 2000);
+                    useLocalVideo(true);
+                }, 1500);
                 return;
             }
+
+            /* تجربة المصدر التالي من القائمة (video.mp4 -> ./video.mp4 -> الرابط الاحتياطي) */
+            if (videoRetryCount <= VIDEO_CANDIDATES.length * 2) {
+                candidateIndex = (candidateIndex + 1) % VIDEO_CANDIDATES.length;
+                const nextSrc = VIDEO_CANDIDATES[candidateIndex];
+                videoErrorTimer = setTimeout(() => {
+                    swapVideoSource(nextSrc, false);
+                }, 1500);
+                return;
+            }
+
+            /* في حال تعذر تشغيل الفيديو مؤقتاً نعرض الخلفية البديلة مع الاستمرار في محاولة التحديث */
             enableFallbackAnimation();
-            videoErrorTimer = setTimeout(cacheVideoForOffline, 15000);
+            videoErrorTimer = setTimeout(() => {
+                videoRetryCount = 0;
+                cacheVideoForOffline();
+            }, 15000);
         }
 
-        /* حارس: إذا تجمّد الفيديو أكثر من ~12 ثانية نعالجه بدل تركه متجمداً أو أسود */
         (function () {
-            let last = -1, same = 0, fixes = 0;
+            let last = -1, same = 0;
             setInterval(() => {
                 const vid = document.getElementById('demoVideo');
                 if (!vid || vid.classList.contains('hidden')) return;
                 const t = vid.currentTime;
-                if (t !== last) { last = t; same = 0; fixes = 0; return; }
+                if (t !== last) { last = t; same = 0; return; }
                 same++;
                 if (same < 3) return;
                 same = 0;
-                if (videoIsLocal) {
-                    fixes++;
-                    vlog('الفيديو المحلي متجمد، محاولة ' + fixes);
-                    try { if (fixes >= 2) vid.load(); vid.play().catch(() => {}); } catch (e) {}
+                if (cachedBlobRef && cachedBlobRef.size > 0) {
+                    useLocalVideo(false);
                 } else {
-                    vlog('الفيديو المباشر متجمد: تفعيل الخلفية البديلة');
-                    enableFallbackAnimation();
+                    safePlayVideo(vid);
                 }
             }, 4000);
         })();
@@ -1807,11 +1827,6 @@
             openPinModalWithFocus("يرجى إدخال رمز لوحة المشرف:");
         }
 
-        function setDisplayedSizeSecurely(sku) {
-            pendingAction = { type: 'setSizeBySku', sku: sku };
-            openPinModalWithFocus("يرجى إدخال رمز البائع لتحديد هذه الشاشة كمعروضة هنا:");
-        }
-
         function closePinModal() {
             document.getElementById('pinModal').classList.add('hidden');
             pendingAction = null;
@@ -1857,12 +1872,6 @@
                     document.getElementById('pinInput').value = '';
                     setTVFocus(document.getElementById('pinInput'));
                 }
-            } else if (pendingAction && pendingAction.type === 'setSizeBySku') {
-                const targetSku = pendingAction.sku;
-                closePinModal();
-                displayedSkuPerBrand[selectedBrandId] = targetSku;
-                localStorage.setItem('clix_displayed_skus', JSON.stringify(displayedSkuPerBrand));
-                renderShowroomDisplay();
             }
         }
 
@@ -2116,7 +2125,7 @@
             const val = (id) => { const el = document.getElementById(id); return el ? el.value : null; };
 
             models.forEach((m, index) => {
-            if (!document.getElementById(`admin_sku_${index}`)) return;
+                if (!document.getElementById(`admin_sku_${index}`)) return;
                 m.sku = val(`admin_sku_${index}`);
                 m.size = val(`admin_size_${index}`);
                 m.promoBadge = val(`admin_promoBadge_${index}`);
@@ -2143,7 +2152,6 @@
                 m.warrantyAr = val(`admin_warrantyAr_${index}`);
                 m.specsAr = val(`admin_specsAr_${index}`);
             });
-
         }
 
         function saveAdminChanges() {
@@ -2168,117 +2176,130 @@
         }
 
         function renderShowroomDisplay() {
-            const currentBrand = appData.brands.find(b => b.id === selectedBrandId) || appData.brands[0];
-            if (currentBrand) selectedBrandId = currentBrand.id;
-            const models = getVisibleModelsForBrand(selectedBrandId);
+            try {
+                if (!appData || !Array.isArray(appData.brands) || appData.brands.length === 0) {
+                    appData = JSON.parse(JSON.stringify(initialData));
+                }
+                const currentBrand = appData.brands.find(b => b.id === selectedBrandId) || appData.brands[0];
+                if (currentBrand) selectedBrandId = currentBrand.id;
+                const models = getVisibleModelsForBrand(selectedBrandId);
 
-            if(currentBrand) {
-                document.getElementById('headerBrandName').innerText = currentBrand.name;
-            }
+                const brandNameEl = document.getElementById('headerBrandName');
+                if (currentBrand && brandNameEl) {
+                    brandNameEl.innerText = currentBrand.name;
+                }
 
-            let activeSku = displayedSkuPerBrand[selectedBrandId] || (models[0] ? models[0].sku : null);
-            if (!models.find(m => m.sku === activeSku)) activeSku = models[0] ? models[0].sku : null;
-            const activeModel = models.find(m => m.sku === activeSku);
+                let activeSku = displayedSkuPerBrand[selectedBrandId] || (models[0] ? models[0].sku : null);
+                if (!models.find(m => m.sku === activeSku)) activeSku = models[0] ? models[0].sku : null;
+                const activeModel = models.find(m => m.sku === activeSku);
 
-            document.getElementById('currentDisplayedBadge').innerText = activeModel ? `${activeModel.size}" بوصة` : 'غير محدد';
+                const badgeEl = document.getElementById('currentDisplayedBadge');
+                if (badgeEl) {
+                    badgeEl.innerText = activeModel ? `${activeModel.size}" بوصة` : 'غير محدد';
+                }
 
-            const grid = document.getElementById('tvCardsGrid');
-            const totalCount = models.length;
-            const isMultiRow = totalCount > 4;
+                const grid = document.getElementById('tvCardsGrid');
+                if (!grid) return;
 
-            let cardHeightClass = isMultiRow ? "min-h-[275px] h-auto" : "min-h-[410px] h-auto";
-            let paddingClass = isMultiRow ? "px-2.5 py-2" : "p-3.5";
-            let fontSizeClass = isMultiRow ? "text-[11px]" : "text-sm";
-            let priceSizeClass = isMultiRow ? "text-lg" : "text-2xl";
+                const totalCount = models.length;
+                const isMultiRow = totalCount > 4;
 
-            grid.className = isMultiRow
-                ? "grid grid-cols-4 gap-2 max-w-6xl mx-auto my-auto items-stretch justify-center w-full"
-                : "grid grid-cols-4 gap-4 max-w-6xl mx-auto my-auto items-stretch justify-center w-full";
+                let cardHeightClass = isMultiRow ? "min-h-[275px] h-auto" : "min-h-[410px] h-auto";
+                let paddingClass = isMultiRow ? "px-2.5 py-2" : "p-3.5";
+                let fontSizeClass = isMultiRow ? "text-[11px]" : "text-sm";
+                let priceSizeClass = isMultiRow ? "text-lg" : "text-2xl";
 
-            grid.innerHTML = models.map((item) => {
-                const isDisplayed = (item.sku === activeSku);
-                const goldenWarrantyPrice = calculateGoldenWarranty(item.price);
+                grid.className = isMultiRow
+                    ? "grid grid-cols-4 gap-2 max-w-6xl mx-auto my-auto items-stretch justify-center w-full"
+                    : "grid grid-cols-4 gap-4 max-w-6xl mx-auto my-auto items-stretch justify-center w-full";
 
-                return `
-                <div tabindex="0" role="button" onclick="openSpecsFullscreenModal('${item.sku}')" class="tv-focusable glass-panel rounded-xl ${paddingClass} flex flex-col justify-between relative transition duration-300 cursor-pointer ${cardHeightClass} ${isDisplayed ? 'featured-card' : 'hover:border-slate-500 hover:scale-[1.01]'}" style="${isDisplayed ? 'border: 3px solid #3b82f6 !important; background: rgba(30, 58, 138, 0.5) !important; box-shadow: 0 0 35px rgba(59, 130, 246, 0.65) !important;' : ''}">
-                    
-                    ${isDisplayed ? `
-                        <div class="absolute top-1.5 left-2 bg-blue-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full border border-blue-200 shadow-xl flex items-center gap-1 z-30">
-                            <i class="fa-solid fa-star text-amber-300"></i>
-                            <span>المعروضة</span>
-                        </div>
-                    ` : ''}
+                grid.innerHTML = models.map((item) => {
+                    const isDisplayed = (item.sku === activeSku);
+                    const goldenWarrantyPrice = calculateGoldenWarranty(item.price);
 
-                    <div class="flex-1 flex flex-col justify-between gap-1.5">
-                        <div>
-                            <div class="flex justify-between items-center ${isMultiRow ? 'mb-0.5' : 'mb-1 mt-0.5'}">
-                                <span class="${isMultiRow ? 'text-xl leading-none' : 'text-3xl'} font-black text-blue-400">${item.size}"</span>
-                                ${item.promoBadge ? `
-                                    <span class="bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 ${isMultiRow ? 'text-[8px] px-1.5 py-0.5' : 'text-[10px] px-2 py-0.5'} rounded font-black shadow">
-                                        <i class="fa-solid fa-bolt"></i> ${item.promoBadge}
+                    return `
+                    <div tabindex="0" role="button" onclick="openSpecsFullscreenModal('${item.sku}')" class="tv-focusable glass-panel rounded-xl ${paddingClass} flex flex-col justify-between relative transition duration-300 cursor-pointer ${cardHeightClass} ${isDisplayed ? 'featured-card' : 'hover:border-slate-500 hover:scale-[1.01]'}" style="${isDisplayed ? 'border: 3px solid #3b82f6 !important; background: rgba(30, 58, 138, 0.5) !important; box-shadow: 0 0 35px rgba(59, 130, 246, 0.65) !important;' : ''}">
+                        
+                        ${isDisplayed ? `
+                            <div class="absolute top-1.5 left-2 bg-blue-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full border border-blue-200 shadow-xl flex items-center gap-1 z-30">
+                                <i class="fa-solid fa-star text-amber-300"></i>
+                                <span>المعروضة</span>
+                            </div>
+                        ` : ''}
+
+                        <div class="flex-1 flex flex-col justify-between gap-1.5">
+                            <div>
+                                <div class="flex justify-between items-center ${isMultiRow ? 'mb-0.5' : 'mb-1 mt-0.5'}">
+                                    <span class="${isMultiRow ? 'text-xl leading-none' : 'text-3xl'} font-black text-blue-400">${item.size || '--'}"</span>
+                                    ${item.promoBadge ? `
+                                        <span class="bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 ${isMultiRow ? 'text-[8px] px-1.5 py-0.5' : 'text-[10px] px-2 py-0.5'} rounded font-black shadow">
+                                            <i class="fa-solid fa-bolt"></i> ${item.promoBadge}
+                                        </span>
+                                    ` : ''}
+                                </div>
+
+                                <div class="${isMultiRow ? 'mb-0.5' : 'mb-1'} flex items-center gap-1">
+                                    <span class="${isMultiRow ? 'text-[8px] px-1.5 py-0' : 'text-[10px] px-2 py-0.5'} text-blue-400 font-mono bg-blue-950/40 rounded border border-blue-900/50">
+                                        SKU: <span class="font-bold text-white">${item.sku || 'N/A'}</span>
                                     </span>
-                                ` : ''}
+                                </div>
+
+                                <div class="${isMultiRow ? 'mb-0.5' : 'mb-1'}">
+                                    <h3 class="font-black text-white ${fontSizeClass} leading-tight break-words">${item.titleAr || ''}</h3>
+                                    <p class="${isMultiRow ? 'text-[9px] leading-tight' : 'text-[11px]'} text-blue-300 font-medium break-words">${item.titleEn || ''}</p>
+                                </div>
+
+                                <div class="flex flex-wrap items-center gap-1 ${isMultiRow ? 'mb-0.5' : 'mb-1'}">
+                                    <span class="bg-indigo-950/80 text-indigo-300 border border-indigo-700/50 ${isMultiRow ? 'text-[8px] px-1.5 py-0' : 'text-[10px] px-2 py-0.5'} rounded font-bold">
+                                        <i class="fa-solid fa-bolt text-amber-400"></i> ${item.refreshRate || '60Hz'}
+                                    </span>
+                                    <span class="bg-slate-800 text-slate-200 border border-slate-700 ${isMultiRow ? 'text-[8px] px-1.5 py-0' : 'text-[10px] px-2 py-0.5'} rounded font-bold">
+                                        <i class="fa-solid fa-microchip text-blue-400"></i> ${item.osSystem || 'Smart TV'}
+                                    </span>
+                                </div>
                             </div>
 
-                            <div class="${isMultiRow ? 'mb-0.5' : 'mb-1'} flex items-center gap-1">
-                                <span class="${isMultiRow ? 'text-[8px] px-1.5 py-0' : 'text-[10px] px-2 py-0.5'} text-blue-400 font-mono bg-blue-950/40 rounded border border-blue-900/50">
-                                    SKU: <span class="font-bold text-white">${item.sku || 'N/A'}</span>
-                                </span>
-                            </div>
+                            <div>
+                                <div class="bg-slate-950/60 ${isMultiRow ? 'px-2 py-1.5 mb-1' : 'p-2 mb-1.5'} rounded-lg border border-slate-800/80">
+                                    <p class="text-slate-100 ${isMultiRow ? 'text-[9.5px]' : 'text-[11.5px]'} font-bold leading-relaxed whitespace-normal break-words">${item.specsAr || ''}</p>
+                                </div>
+                                
+                                <div class="grid grid-cols-2 gap-1 ${isMultiRow ? 'mb-0.5 text-[8px] px-1.5 py-0.5' : 'mb-1 text-[10px] p-1.5'} text-slate-300 bg-slate-900/60 rounded-lg border border-slate-800">
+                                    <div class="break-words">
+                                        <span class="text-slate-400">الضمان: </span> 
+                                        <span class="font-bold text-amber-400">${item.warrantyAr || 'سنتان'}</span>
+                                    </div>
+                                    <div class="break-words">
+                                        <span class="text-slate-400">المنشأ: </span> 
+                                        <span class="font-bold text-blue-300">${item.originAr || 'وارد الوكيل'}</span>
+                                    </div>
+                                </div>
 
-                            <div class="${isMultiRow ? 'mb-0.5' : 'mb-1'}">
-                                <h3 class="font-black text-white ${fontSizeClass} leading-tight break-words">${item.titleAr || ''}</h3>
-                                <p class="${isMultiRow ? 'text-[9px] leading-tight' : 'text-[11px]'} text-blue-300 font-medium break-words">${item.titleEn || ''}</p>
-                            </div>
-
-                            <div class="flex flex-wrap items-center gap-1 ${isMultiRow ? 'mb-0.5' : 'mb-1'}">
-                                <span class="bg-indigo-950/80 text-indigo-300 border border-indigo-700/50 ${isMultiRow ? 'text-[8px] px-1.5 py-0' : 'text-[10px] px-2 py-0.5'} rounded font-bold">
-                                    <i class="fa-solid fa-bolt text-amber-400"></i> ${item.refreshRate || '60Hz'}
-                                </span>
-                                <span class="bg-slate-800 text-slate-200 border border-slate-700 ${isMultiRow ? 'text-[8px] px-1.5 py-0' : 'text-[10px] px-2 py-0.5'} rounded font-bold">
-                                    <i class="fa-solid fa-microchip text-blue-400"></i> ${item.osSystem || 'Smart TV'}
-                                </span>
+                                <div class="bg-gradient-to-r from-amber-950/40 to-slate-900 ${isMultiRow ? 'px-1.5 py-0.5 mb-0.5' : 'p-1.5 mb-1'} rounded-lg border border-amber-500/40 flex items-center justify-between gap-1">
+                                    <span class="${isMultiRow ? 'text-[8.5px]' : 'text-[10px]'} text-amber-200 font-bold"><i class="fa-solid fa-crown text-amber-400 ml-1"></i> الضمان الذهبي 5 سنوات:</span>
+                                    <span class="${isMultiRow ? 'text-[9.5px]' : 'text-[11px]'} font-black text-amber-300 shrink-0">${goldenWarrantyPrice}</span>
+                                </div>
                             </div>
                         </div>
 
-                        <div>
-                            <div class="bg-slate-950/60 ${isMultiRow ? 'px-2 py-1.5 mb-1' : 'p-2 mb-1.5'} rounded-lg border border-slate-800/80">
-                                <p class="text-slate-100 ${isMultiRow ? 'text-[9.5px]' : 'text-[11.5px]'} font-bold leading-relaxed whitespace-normal break-words">${item.specsAr || ''}</p>
-                            </div>
-                            
-                            <div class="grid grid-cols-2 gap-1 ${isMultiRow ? 'mb-0.5 text-[8px] px-1.5 py-0.5' : 'mb-1 text-[10px] p-1.5'} text-slate-300 bg-slate-900/60 rounded-lg border border-slate-800">
-                                <div class="break-words">
-                                    <span class="text-slate-400">الضمان: </span> 
-                                    <span class="font-bold text-amber-400">${item.warrantyAr || 'سنتان'}</span>
+                        <div class="${isMultiRow ? 'pt-1 mt-1' : 'pt-1.5 mt-1'} border-t border-slate-800 shrink-0">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-baseline gap-1.5">
+                                    <div class="flex items-baseline gap-1">
+                                        <span class="${priceSizeClass} font-black text-emerald-400 tracking-wider leading-none">${item.price || '--'}</span>
+                                        <span class="${isMultiRow ? 'text-[9px]' : 'text-xs'} font-bold text-emerald-400">ر.س</span>
+                                    </div>
+                                    ${item.oldPrice ? `<span class="${isMultiRow ? 'text-[9px]' : 'text-xs'} text-slate-400 line-through font-medium">${item.oldPrice}</span>` : ''}
                                 </div>
-                                <div class="break-words">
-                                    <span class="text-slate-400">المنشأ: </span> 
-                                    <span class="font-bold text-blue-300">${item.originAr || 'وارد الوكيل'}</span>
-                                </div>
+                                <span class="${isMultiRow ? 'text-[8px] px-1.5 py-0.5' : 'text-[10px] px-2 py-0.5'} bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 rounded font-bold">متوفر</span>
                             </div>
-
-                            <div class="bg-gradient-to-r from-amber-950/40 to-slate-900 ${isMultiRow ? 'px-1.5 py-0.5 mb-0.5' : 'p-1.5 mb-1'} rounded-lg border border-amber-500/40 flex items-center justify-between gap-1">
-                                <span class="${isMultiRow ? 'text-[8.5px]' : 'text-[10px]'} text-amber-200 font-bold"><i class="fa-solid fa-crown text-amber-400 ml-1"></i> الضمان الذهبي 5 سنوات:</span>
-                                <span class="${isMultiRow ? 'text-[9.5px]' : 'text-[11px]'} font-black text-amber-300 shrink-0">${goldenWarrantyPrice}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="${isMultiRow ? 'pt-1 mt-1' : 'pt-1.5 mt-1'} border-t border-slate-800 shrink-0">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-baseline gap-1.5">
-                                <div class="flex items-baseline gap-1">
-                                    <span class="${priceSizeClass} font-black text-emerald-400 tracking-wider leading-none">${item.price}</span>
-                                    <span class="${isMultiRow ? 'text-[9px]' : 'text-xs'} font-bold text-emerald-400">ر.س</span>
-                                </div>
-                                <span class="${isMultiRow ? 'text-[9px]' : 'text-xs'} text-slate-400 line-through font-medium">${item.oldPrice}</span>
-                            </div>
-                            <span class="${isMultiRow ? 'text-[8px] px-1.5 py-0.5' : 'text-[10px] px-2 py-0.5'} bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 rounded font-bold">متوفر</span>
                         </div>
                     </div>
-                </div>
-            `;
-            }).join('');
+                `;
+                }).join('');
+            } catch (e) {
+                vlog('خطأ أثناء عرض البطاقات: ' + ((e && e.message) || e));
+            }
         }
     </script>
 </body>
