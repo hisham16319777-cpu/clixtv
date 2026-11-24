@@ -112,7 +112,10 @@
         setInterval(function () { beat(false); }, 5000);
         window.addEventListener('pagehide', function () { beat(true); });
 
-        window.addEventListener('error', function (e) { window.clixLog('خطأ JS: ' + (e.message || '') + ' @' + (e.lineno || '')); });
+        window.addEventListener('error', function (e) {
+            if (e && e.target && e.target.tagName === 'VIDEO') return;
+            window.clixLog('خطأ JS: ' + (e.message || '') + ' @' + (e.lineno || ''));
+        });
         window.addEventListener('unhandledrejection', function (e) { window.clixLog('Promise مرفوض: ' + ((e.reason && (e.reason.message || e.reason.name)) || e.reason)); });
         window.addEventListener('offline', function () { window.clixLog('حدث: offline'); });
         window.addEventListener('online', function () { window.clixLog('حدث: online'); });
@@ -120,9 +123,13 @@
         var panel = null, timer = null;
         function render() {
             if (!panel) return;
-            var vid = document.getElementById('demoVideo');
-            var head = 'فيديو: ' + (vid ? ('t=' + Math.round(vid.currentTime) + 's ready=' + vid.readyState + ' paused=' + vid.paused + ' muted=' + vid.muted + ' err=' + (vid.error ? vid.error.code : '-') + ' blob=' + ((vid.currentSrc || '').indexOf('blob:') === 0)) : '-') +
-                       '\nذاكرة JS: ' + (heap() === null ? '؟' : heap() + 'MB') + ' | متصل(المتصفح): ' + navigator.onLine;
+            var v = document.getElementById('bgVideo');
+            var head = v ? ('فيديو: t=' + Math.floor(v.currentTime || 0) + 's ready=' + v.readyState +
+                       ' paused=' + v.paused + ' muted=' + v.muted +
+                       ' err=' + (v.error ? v.error.code : '-') +
+                       ' blob=' + (typeof cachedBlobRef !== 'undefined' && !!cachedBlobRef))
+                       : 'فيديو: غير متوفر (وضع Canvas)';
+            head += '\nذاكرة JS: ' + (heap() === null ? '؟' : heap() + 'MB') + ' | متصل(المتصفح): ' + navigator.onLine;
             var lines = readLog().slice(-22).map(function (r) { return hhmmss(r[0]) + '  ' + r[1]; });
             panel.textContent = head + '\n----------\n' + lines.join('\n');
         }
@@ -196,10 +203,7 @@
 </head>
 <body class="bg-slate-950 text-white h-screen overflow-hidden flex flex-col justify-between select-none">
 
-    <video id="demoVideo" autoplay loop muted playsinline webkit-playsinline preload="auto" class="fullscreen-bg" onerror="handleVideoError()" onstalled="handleVideoNetworkIssue()" onabort="handleVideoNetworkIssue()" onwaiting="handleVideoNetworkIssue()">
-        <source id="demoVideoSource" src="video.mp4" type="video/mp4">
-    </video>
-
+    <video id="bgVideo" autoplay loop muted playsinline preload="metadata" crossorigin="anonymous" class="fullscreen-bg"></video>
     <canvas id="fallbackCanvas" class="fullscreen-bg hidden"></canvas>
     <div id="overlayLayer" class="absolute inset-0 bg-slate-950/80 backdrop-blur-[2px] z-0 fade-transition"></div>
 
@@ -332,10 +336,10 @@
 
             <div class="bg-gradient-to-r from-emerald-950/60 to-slate-900 border border-emerald-500/50 p-4 rounded-xl mb-6 shadow-lg">
                 <h4 class="font-bold text-emerald-300 text-sm mb-1.5 flex items-center gap-2">
-                    <i class="fa-solid fa-bolt text-emerald-400"></i> التحديث التلقائي المباشر وتشغيل الفيديو أوفلاين مفعل بنجاح
+                    <i class="fa-solid fa-bolt text-emerald-400"></i> التحديث التلقائي المباشر مفعل بنجاح على جميع الشاشات المتصلة
                 </h4>
-                <p class="text-[11px] text-slate-300">
-                    جميع شاشات التلفزيون المتصلة بهذا الرابط متزامنة سحابياً مع حفظ تلقائي محلي لضمان استمرار العرض حتى عند انقطاع الإنترنت.
+                <p id="videoOfflineStatusBanner" class="text-[11px] text-slate-300">
+                    يتم تشغيل الفيديو مباشرة من المصدر المفتوح ومحاولة حفظه للعمل عند انقطاع الإنترنت.
                 </p>
             </div>
 
@@ -407,88 +411,50 @@
     </div>
 
     <script>
-        const VIDEO_URL = 'https://vjs.zencdn.net/v/oceans.mp4';
-        const VIDEO_CANDIDATES = (function () {
-            const list = [];
-            try { const q = new URLSearchParams(location.search).get('video'); if (q) list.push(q); } catch (e) {}
-            list.push('video.mp4', './video.mp4', VIDEO_URL);
-            return Array.from(new Set(list));
-        })();
-        const VIDEO_DB = 'clix_media_v2';
-        const VIDEO_STORE = 'files';
-        const VIDEO_KEY = 'main_video';
+        const DEFAULT_OPENSOURCE_VIDEO = "https://vjs.zencdn.net/v/oceans.mp4";
+        const VIDEO_CACHE_DB = "clix_tv_video_db_v1";
+        const VIDEO_CACHE_STORE = "videos";
+        const VIDEO_CACHE_KEY = "active_screen_video";
 
-        function idbOpen() {
-            return new Promise((resolve, reject) => {
-                if (!window.indexedDB) return reject(new Error('no idb'));
-                const r = indexedDB.open(VIDEO_DB, 1);
-                r.onupgradeneeded = () => {
-                    if (!r.result.objectStoreNames.contains(VIDEO_STORE)) {
-                        r.result.createObjectStore(VIDEO_STORE);
-                    }
-                };
-                r.onsuccess = () => resolve(r.result);
-                r.onerror = () => reject(r.error);
-            });
-        }
-        async function idbGet(key) {
-            const db = await idbOpen();
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(VIDEO_STORE, 'readonly');
-                const rq = tx.objectStore(VIDEO_STORE).get(key);
-                rq.onsuccess = () => resolve(rq.result);
-                rq.onerror = () => reject(rq.error);
-            });
-        }
-        async function idbPut(key, val) {
-            const db = await idbOpen();
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(VIDEO_STORE, 'readwrite');
-                tx.objectStore(VIDEO_STORE).put(val, key);
-                tx.oncomplete = () => resolve(true);
-                tx.onerror = () => reject(tx.error);
-                tx.onabort = () => reject(tx.error);
-            });
-        }
-
-        let videoIsLocal = false;
-        let videoDownloading = false;
-        let localVideoObjectUrl = null;
-        let cachedBlobRef = null;
-        let candidateIndex = 0;
         let userWantsAudio = false;
-        let lastObservedTime = -1;
-        let stuckTicks = 0;
-        let videoDisabledOnDevice = false;
-        let localBlobRejected = false;
+        let fallbackAnimStarted = false;
+        let cachedBlobRef = null;
+        let activeObjectUrl = null;
+        let currentVideoSourceUrl = DEFAULT_OPENSOURCE_VIDEO;
+        let videoRetryTimer = null;
+        let videoDownloadInFlight = false;
 
         function vlog(m) { try { if (window.clixLog) window.clixLog(m); } catch (e) {} }
-        let statusHideTimer = null;
-        function setVideoStatus(text, kind) {
-            let el = document.getElementById('videoCacheBadge');
-            if (!el) {
-                el = document.createElement('div');
-                el.id = 'videoCacheBadge';
-                el.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:60;padding:3px 10px;border-radius:8px;font:700 11px Tajawal,sans-serif;pointer-events:none;transition:opacity .6s';
-                document.body.appendChild(el);
-            }
-            const colors = { ok: ['#064e3b', '#6ee7b7'], busy: ['#78350f', '#fcd34d'], err: ['#7f1d1d', '#fca5a5'] };
-            const c = colors[kind] || colors.busy;
-            el.style.background = c[0]; el.style.color = c[1];
-            el.textContent = text;
-            el.style.opacity = '1';
-            clearTimeout(statusHideTimer);
-            if (kind === 'ok') statusHideTimer = setTimeout(() => { el.style.opacity = '0'; }, 12000);
-            vlog('حالة الفيديو: ' + text);
+
+        function updateOfflineVideoBanner(msg) {
+            const el = document.getElementById('videoOfflineStatusBanner');
+            if (el && msg) el.textContent = msg;
+        }
+
+        function getRequestedVideoUrl() {
+            try {
+                const paramVideo = new URLSearchParams(location.search).get('video');
+                if (paramVideo && paramVideo.trim()) {
+                    return paramVideo.trim();
+                }
+            } catch (e) {}
+            return DEFAULT_OPENSOURCE_VIDEO;
         }
 
         function syncAudioButtonUI() {
-            const vid = document.getElementById('demoVideo');
+            const v = document.getElementById('bgVideo');
             const icon = document.getElementById('audioIcon');
             const text = document.getElementById('audioText');
-            if (!vid || !icon || !text) return;
-            const isAudible = !vid.muted && userWantsAudio && !vid.classList.contains('hidden');
-            if (isAudible) {
+            if (!icon || !text) return;
+
+            if (v) {
+                v.muted = !userWantsAudio;
+                if (userWantsAudio && v.readyState >= 2) {
+                    v.play().catch(() => {});
+                }
+            }
+
+            if (userWantsAudio) {
                 icon.className = "fa-solid fa-volume-high text-emerald-400";
                 text.innerText = "كتم الصوت";
             } else {
@@ -497,158 +463,266 @@
             }
         }
 
-        function safePlayVideo(vid, allowSound = false) {
-            if (!vid) return;
-            vid.loop = true;
-            vid.playsInline = true;
-            vid.muted = !(allowSound && userWantsAudio);
-            try {
-                const p = vid.play();
-                if (p && typeof p.catch === 'function') {
-                    p.catch(() => {
-                        if (!vid.muted) {
-                            vid.muted = true;
-                            const retry = vid.play();
-                            if (retry && retry.catch) retry.catch(() => {});
-                        }
-                        syncAudioButtonUI();
-                    });
-                }
-            } catch (e) {}
-            syncAudioButtonUI();
-        }
-
-        function swapVideoSource(url, isLocalBlob = false) {
-            const vid = document.getElementById('demoVideo');
-            const sourceEl = document.getElementById('demoVideoSource');
+        function hideFallbackCanvas() {
             const canvas = document.getElementById('fallbackCanvas');
-            if (!vid || !url) return;
-
-            if (localVideoObjectUrl && localVideoObjectUrl !== url && localVideoObjectUrl.startsWith('blob:')) {
-                try { URL.revokeObjectURL(localVideoObjectUrl); } catch (e) {}
-                localVideoObjectUrl = null;
-            }
-            if (url.startsWith('blob:')) {
-                localVideoObjectUrl = url;
-            }
-            videoIsLocal = !!isLocalBlob;
-            stuckTicks = 0;
-            lastObservedTime = -1;
-
-            if (sourceEl) {
-                sourceEl.src = url;
-                sourceEl.type = 'video/mp4';
-            }
-            vid.src = url;
-
             if (canvas) canvas.classList.add('hidden');
-            vid.classList.remove('hidden');
-            try { vid.load(); } catch (e) {}
-            safePlayVideo(vid, userWantsAudio);
         }
 
-        async function useLocalVideo(forceNewUrl = false) {
-            if (localBlobRejected) return false;
-            try {
-                if (!cachedBlobRef) {
-                    const rec = await idbGet(VIDEO_KEY);
-                    if (rec && rec.blob && rec.blob.size > 0) {
-                        cachedBlobRef = new Blob([rec.blob], { type: 'video/mp4' });
-                    }
-                }
-                if (cachedBlobRef && cachedBlobRef.size > 0) {
-                    if (forceNewUrl || !localVideoObjectUrl) {
-                        const freshUrl = URL.createObjectURL(cachedBlobRef);
-                        swapVideoSource(freshUrl, true);
-                    } else {
-                        swapVideoSource(localVideoObjectUrl, true);
-                    }
-                    return true;
-                }
-            } catch (e) {
-                vlog('تعذر قراءة الفيديو المحفوظ: ' + ((e && e.message) || e));
+        function enableFallbackAnimation() {
+            const canvas = document.getElementById('fallbackCanvas');
+            syncAudioButtonUI();
+            if (!canvas) return;
+            canvas.classList.remove('hidden');
+            if (fallbackAnimStarted) return;
+            fallbackAnimStarted = true;
+            const ctx = canvas.getContext('2d');
+            function resizeCanvas() {
+                canvas.width = window.innerWidth || 1280;
+                canvas.height = window.innerHeight || 720;
             }
-            return false;
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            let step = 0;
+            function draw() {
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.22)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                const x = canvas.width / 2 + Math.sin(step) * Math.min(300, canvas.width * 0.25);
+                const y = canvas.height / 2 + Math.cos(step) * Math.min(200, canvas.height * 0.25);
+                const grad = ctx.createRadialGradient(x, y, 10, x, y, 420);
+                grad.addColorStop(0, '#2563eb');
+                grad.addColorStop(1, 'transparent');
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(x, y, 420, 0, Math.PI * 2);
+                ctx.fill();
+                step += 0.02;
+                requestAnimationFrame(draw);
+            }
+            draw();
         }
 
-        async function downloadVideoFrom(url) {
-            const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-            const timer = controller ? setTimeout(() => controller.abort(), 25000) : null;
+        function openVideoIdb() {
+            return new Promise((resolve, reject) => {
+                if (typeof indexedDB === 'undefined') {
+                    reject(new Error('IndexedDB غير متاح'));
+                    return;
+                }
+                const req = indexedDB.open(VIDEO_CACHE_DB, 1);
+                req.onupgradeneeded = () => {
+                    const db = req.result;
+                    if (!db.objectStoreNames.contains(VIDEO_CACHE_STORE)) {
+                        db.createObjectStore(VIDEO_CACHE_STORE);
+                    }
+                };
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error || new Error('فشل فتح IndexedDB'));
+            });
+        }
+
+        async function readCachedVideoRecord() {
             try {
-                const res = await fetch(url, {
-                    mode: 'cors',
-                    cache: 'default',
-                    signal: controller ? controller.signal : undefined
+                const db = await openVideoIdb();
+                return await new Promise((resolve, reject) => {
+                    const tx = db.transaction(VIDEO_CACHE_STORE, 'readonly');
+                    const store = tx.objectStore(VIDEO_CACHE_STORE);
+                    const req = store.get(VIDEO_CACHE_KEY);
+                    req.onsuccess = () => resolve(req.result || null);
+                    req.onerror = () => reject(req.error);
                 });
-                if (!res || !res.ok) throw new Error('HTTP ' + (res && res.status));
-                const ct = (res.headers.get('content-type') || '').toLowerCase();
-                if (ct.includes('text/html')) throw new Error('الملف غير موجود');
-
-                const total = Number(res.headers.get('content-length')) || 0;
-                let blob;
-                if (res.body && res.body.getReader) {
-                    const reader = res.body.getReader();
-                    const chunks = [];
-                    let got = 0, lastPct = -1;
-                    for (;;) {
-                        const r = await reader.read();
-                        if (r.done) break;
-                        chunks.push(r.value);
-                        got += r.value.length;
-                        if (total) {
-                            const pct = Math.floor(got * 100 / total);
-                            if (pct !== lastPct && pct % 15 === 0) {
-                                lastPct = pct;
-                                setVideoStatus('تنزيل الفيديو للعمل أوفلاين ' + pct + '%', 'busy');
-                            }
-                        }
-                    }
-                    blob = new Blob(chunks, { type: 'video/mp4' });
-                } else {
-                    const rawBlob = await res.blob();
-                    blob = new Blob([rawBlob], { type: 'video/mp4' });
-                }
-                if (!blob || blob.size < 1024) throw new Error('ملف الفيديو فارغ أو غير مكتمل');
-                return blob;
-            } finally {
-                if (timer) clearTimeout(timer);
+            } catch (e) {
+                return null;
             }
         }
 
-        async function cacheVideoForOffline() {
-            if (videoDownloading) return;
-            if (cachedBlobRef && cachedBlobRef.size > 0) {
-                videoDisabledOnDevice = false;
-                localBlobRejected = false;
-                await useLocalVideo(true);
+        async function writeCachedVideoRecord(url, blob) {
+            try {
+                const db = await openVideoIdb();
+                await new Promise((resolve, reject) => {
+                    const tx = db.transaction(VIDEO_CACHE_STORE, 'readwrite');
+                    const store = tx.objectStore(VIDEO_CACHE_STORE);
+                    const req = store.put({ url: url, blob: blob, savedAt: Date.now() }, VIDEO_CACHE_KEY);
+                    req.onsuccess = () => resolve();
+                    req.onerror = () => reject(req.error);
+                });
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        async function clearCachedVideoRecord() {
+            try {
+                const db = await openVideoIdb();
+                await new Promise((resolve) => {
+                    const tx = db.transaction(VIDEO_CACHE_STORE, 'readwrite');
+                    const req = tx.objectStore(VIDEO_CACHE_STORE).delete(VIDEO_CACHE_KEY);
+                    req.onsuccess = () => resolve();
+                    req.onerror = () => resolve();
+                });
+            } catch (e) {}
+        }
+
+        function playBlobOnVideo(videoEl, blob) {
+            if (!videoEl || !blob) return;
+            try {
+                if (activeObjectUrl) {
+                    URL.revokeObjectURL(activeObjectUrl);
+                    activeObjectUrl = null;
+                }
+                activeObjectUrl = URL.createObjectURL(blob);
+                videoEl.muted = !userWantsAudio;
+                videoEl.src = activeObjectUrl;
+                videoEl.load();
+                videoEl.play().catch(() => {});
+            } catch (e) {
+                vlog('خطأ تشغيل Blob المحلي: ' + ((e && e.message) || e));
+            }
+        }
+
+        function playRemoteStreamOnVideo(videoEl, url) {
+            if (!videoEl || !url) return;
+            try {
+                if (activeObjectUrl) {
+                    URL.revokeObjectURL(activeObjectUrl);
+                    activeObjectUrl = null;
+                }
+                videoEl.muted = !userWantsAudio;
+                if (videoEl.src !== url) {
+                    videoEl.src = url;
+                    videoEl.load();
+                }
+                videoEl.play().catch(() => {});
+            } catch (e) {
+                vlog('خطأ تشغيل البث المباشر: ' + ((e && e.message) || e));
+            }
+        }
+
+        async function downloadAndSaveVideoForOffline(url) {
+            if (!url || videoDownloadInFlight || navigator.onLine === false) return;
+            videoDownloadInFlight = true;
+            try {
+                vlog('تنزيل الفيديو للعمل أوفلاين: ' + url);
+                const res = await fetch(url, { mode: 'cors', cache: 'no-store' });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const blob = await res.blob();
+                if (!blob || blob.size < 1024) throw new Error('حجم ملف الفيديو غير صالح');
+
+                const normalizedBlob = blob.type && blob.type.startsWith('video/')
+                    ? blob
+                    : new Blob([blob], { type: 'video/mp4' });
+
+                const saved = await writeCachedVideoRecord(url, normalizedBlob);
+                cachedBlobRef = normalizedBlob;
+
+                if (saved) {
+                    vlog('تم حفظ الفيديو محلياً للعمل بدون إنترنت (' + Math.round(normalizedBlob.size / 1048576) + 'MB)');
+                    updateOfflineVideoBanner('تم حفظ الفيديو محلياً على الشاشة للعمل تلقائياً عند انقطاع الإنترنت.');
+                } else {
+                    vlog('تم تحميل الفيديو في الذاكرة المؤقتة (تعذر حفظه في IndexedDB)');
+                }
+            } catch (err) {
+                vlog('تعذر تنزيل الفيديو محلياً حالياً: ' + ((err && err.message) || err));
+            } finally {
+                videoDownloadInFlight = false;
+            }
+        }
+
+        function scheduleVideoRetry(delayMs = 10000) {
+            clearTimeout(videoRetryTimer);
+            videoRetryTimer = setTimeout(() => {
+                initOpenSourceVideoPlayer(false);
+            }, delayMs);
+        }
+
+        async function initOpenSourceVideoPlayer(forceReset = false) {
+            const videoEl = document.getElementById('bgVideo');
+            if (!videoEl) {
+                enableFallbackAnimation();
                 return;
             }
-            videoDownloading = true;
-            try {
-                try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
-                let blob = null, usedUrl = null;
-                for (const url of VIDEO_CANDIDATES) {
-                    try {
-                        blob = await downloadVideoFrom(url);
-                        usedUrl = url;
-                        break;
-                    } catch (e) {
-                        vlog('تعذر تنزيل ' + url + ' : ' + ((e && e.message) || e));
-                    }
-                }
-                if (blob) {
-                    cachedBlobRef = blob;
-                    localBlobRejected = false;
-                    videoDisabledOnDevice = false;
-                    try {
-                        await idbPut(VIDEO_KEY, { url: usedUrl, blob: blob, savedAt: Date.now() });
-                    } catch (e) {}
-                    setVideoStatus('تم حفظ الفيديو للعمل أوفلاين ✓', 'ok');
-                    await useLocalVideo(true);
-                }
-            } finally {
-                videoDownloading = false;
+
+            currentVideoSourceUrl = getRequestedVideoUrl();
+            if (forceReset) {
+                cachedBlobRef = null;
+                await clearCachedVideoRecord();
             }
+
+            const cachedRecord = await readCachedVideoRecord();
+            if (cachedRecord && cachedRecord.url === currentVideoSourceUrl && cachedRecord.blob) {
+                cachedBlobRef = cachedRecord.blob;
+                vlog('تشغيل الفيديو من الذاكرة المحلية (أوفلاين جاهز)');
+                updateOfflineVideoBanner('الفيديو محفوظ محلياً ويعمل حتى عند انقطاع الإنترنت.');
+                playBlobOnVideo(videoEl, cachedBlobRef);
+                if (navigator.onLine !== false && !forceReset) {
+                    downloadAndSaveVideoForOffline(currentVideoSourceUrl);
+                }
+                return;
+            }
+
+            if (navigator.onLine !== false) {
+                vlog('تشغيل مباشر من المصدر المفتوح: ' + currentVideoSourceUrl);
+                playRemoteStreamOnVideo(videoEl, currentVideoSourceUrl);
+                downloadAndSaveVideoForOffline(currentVideoSourceUrl);
+            } else {
+                vlog('لا يوجد إنترنت ولا توجد نسخة محفوظة — تشغيل Canvas مؤقتاً');
+                enableFallbackAnimation();
+                scheduleVideoRetry(10000);
+            }
+        }
+
+        function bindVideoEvents() {
+            const videoEl = document.getElementById('bgVideo');
+            if (!videoEl) return;
+
+            videoEl.addEventListener('loadeddata', () => {
+                hideFallbackCanvas();
+                videoEl.play().catch(() => {});
+            });
+
+            videoEl.addEventListener('canplay', () => {
+                hideFallbackCanvas();
+                videoEl.play().catch(() => {});
+            });
+
+            videoEl.addEventListener('playing', () => {
+                hideFallbackCanvas();
+            });
+
+            videoEl.addEventListener('error', () => {
+                const code = videoEl.error ? videoEl.error.code : 'unknown';
+                vlog('خطأ مشغل الفيديو code=' + code);
+                if (cachedBlobRef && videoEl.src !== activeObjectUrl) {
+                    playBlobOnVideo(videoEl, cachedBlobRef);
+                } else {
+                    enableFallbackAnimation();
+                    scheduleVideoRetry(10000);
+                }
+            });
+
+            window.addEventListener('online', () => {
+                vlog('عاد الإنترنت — محاولة تشغيل وتنزيل الفيديو');
+                const currentSrc = videoEl.currentSrc || videoEl.src || '';
+                if (!currentSrc || currentSrc.startsWith('blob:')) {
+                    playRemoteStreamOnVideo(videoEl, currentVideoSourceUrl);
+                } else {
+                    videoEl.play().catch(() => {});
+                }
+                downloadAndSaveVideoForOffline(currentVideoSourceUrl);
+            });
+
+            window.addEventListener('offline', () => {
+                vlog('انقطع الإنترنت — التحقق من النسخة المحلية للفيديو');
+                if (cachedBlobRef) {
+                    playBlobOnVideo(videoEl, cachedBlobRef);
+                } else {
+                    enableFallbackAnimation();
+                    scheduleVideoRetry(10000);
+                }
+            });
+        }
+
+        function cacheVideoForOffline() {
+            return downloadAndSaveVideoForOffline(currentVideoSourceUrl);
         }
 
         const initialData = {
@@ -1036,13 +1110,6 @@
             pullFromCloudNow();
             startCloudStream();
             if (pushPending) flushPush();
-            cacheVideoForOffline();
-            if (!videoDisabledOnDevice) {
-                const vid = document.getElementById('demoVideo');
-                if (vid && !vid.classList.contains('hidden')) {
-                    safePlayVideo(vid, userWantsAudio);
-                }
-            }
         }
 
         function initCloudSync() {
@@ -1115,8 +1182,10 @@
             renderShowroomDisplay();
             populateAdminBrandSelect();
             initTVRemoteNavigation();
-
             initCloudSync();
+            bindVideoEvents();
+            syncAudioButtonUI();
+            initOpenSourceVideoPlayer(/[?&]resetvideo=1/.test(location.search));
 
             let wakeSentinel = null;
             const acquireWake = () => {
@@ -1133,61 +1202,6 @@
             window.addEventListener('touchstart', triggerRemoteUI);
 
             startContinuousCycle();
-
-            (() => {
-                const v = document.getElementById('demoVideo');
-                const seen = {};
-                ['waiting', 'stalled', 'abort', 'emptied', 'canplay', 'loadeddata', 'timeupdate'].forEach((ev) => {
-                    if (v) v.addEventListener(ev, () => {
-                        if (ev === 'timeupdate' && v.currentTime > 0.2) {
-                            stuckTicks = 0;
-                            const canvas = document.getElementById('fallbackCanvas');
-                            if (canvas) canvas.classList.add('hidden');
-                            v.classList.remove('hidden');
-                            return;
-                        }
-                        if (ev === 'canplay' || ev === 'loadeddata') {
-                            safePlayVideo(v, userWantsAudio);
-                        }
-                        if (ev !== 'timeupdate') {
-                            const n = Date.now();
-                            if (!seen[ev] || n - seen[ev] > 5000) { seen[ev] = n; vlog('حدث فيديو: ' + ev); }
-                        }
-                    });
-                });
-            })();
-
-            (async () => {
-                const vid = document.getElementById('demoVideo');
-                const loadedFromCache = await useLocalVideo(true);
-                if (!loadedFromCache && vid) {
-                    swapVideoSource(VIDEO_CANDIDATES[0], false);
-                }
-                cacheVideoForOffline();
-            })();
-
-            setInterval(() => {
-                const vid = document.getElementById('demoVideo');
-                if (!vid || vid.classList.contains('hidden')) return;
-                if (vid.error) {
-                    enableFallbackAnimation();
-                    return;
-                }
-                const t = vid.currentTime;
-                if (t !== lastObservedTime && t > 0.1) {
-                    lastObservedTime = t;
-                    stuckTicks = 0;
-                    return;
-                }
-                stuckTicks++;
-                if (vid.paused) {
-                    safePlayVideo(vid, userWantsAudio);
-                }
-                if (stuckTicks >= 4 && vid.readyState < 3 && !videoDownloading) {
-                    vlog('تحويل للخلفية المتحركة لتعذر فك تشفير الفيديو على الشاشة');
-                    enableFallbackAnimation();
-                }
-            }, 4000);
 
             setTimeout(() => {
                 const firstFocus = document.getElementById('brandSelectBtn');
@@ -1534,18 +1548,7 @@
         }
 
         function toggleVideoAudio() {
-            const vid = document.getElementById('demoVideo');
-            if (!vid) {
-                syncAudioButtonUI();
-                return;
-            }
-
             userWantsAudio = !userWantsAudio;
-            vid.muted = !userWantsAudio;
-            if (userWantsAudio) {
-                try { vid.volume = 1.0; } catch (e) {}
-            }
-            safePlayVideo(vid, userWantsAudio);
             syncAudioButtonUI();
         }
 
@@ -1712,96 +1715,6 @@
                     processParsedCsvRows(results.data, inputEl);
                 }
             });
-        }
-
-        function handleVideoNetworkIssue() {
-            const vid = document.getElementById('demoVideo');
-            if (vid && !vid.classList.contains('hidden')) safePlayVideo(vid, userWantsAudio);
-        }
-
-        let videoErrorTimer = null;
-        let videoRetryCount = 0;
-
-        function handleVideoError() {
-            const vid = document.getElementById('demoVideo');
-            const errCode = vid && vid.error ? vid.error.code : '?';
-            const wasBlob = !!(vid && ((vid.currentSrc || '').indexOf('blob:') === 0 || videoIsLocal));
-            vlog('خطأ فيديو code=' + errCode + ' محلي=' + wasBlob);
-            clearTimeout(videoErrorTimer);
-
-            if (wasBlob) {
-                localBlobRejected = true;
-                cachedBlobRef = null;
-                if (localVideoObjectUrl) {
-                    try { URL.revokeObjectURL(localVideoObjectUrl); } catch (e) {}
-                    localVideoObjectUrl = null;
-                }
-                videoIsLocal = false;
-                if (errCode === 4) {
-                    enableFallbackAnimation();
-                    return;
-                }
-                swapVideoSource(VIDEO_CANDIDATES[0], false);
-                return;
-            }
-
-            if (errCode === 4) {
-                enableFallbackAnimation();
-                return;
-            }
-
-            videoRetryCount++;
-            if (videoRetryCount <= VIDEO_CANDIDATES.length) {
-                candidateIndex = (candidateIndex + 1) % VIDEO_CANDIDATES.length;
-                const nextSrc = VIDEO_CANDIDATES[candidateIndex];
-                videoErrorTimer = setTimeout(() => {
-                    swapVideoSource(nextSrc, false);
-                }, 1500);
-                return;
-            }
-
-            enableFallbackAnimation();
-        }
-
-        let fallbackAnimStarted = false;
-        function enableFallbackAnimation() {
-            clearTimeout(videoErrorTimer);
-            const vid = document.getElementById('demoVideo');
-            const canvas = document.getElementById('fallbackCanvas');
-            if (vid) {
-                try { vid.pause(); } catch (e) {}
-                vid.classList.add('hidden');
-            }
-            syncAudioButtonUI();
-            if (canvas) {
-                canvas.classList.remove('hidden');
-                if (fallbackAnimStarted) return;
-                fallbackAnimStarted = true;
-                const ctx = canvas.getContext('2d');
-                function resizeCanvas() {
-                    canvas.width = window.innerWidth || 1280;
-                    canvas.height = window.innerHeight || 720;
-                }
-                resizeCanvas();
-                window.addEventListener('resize', resizeCanvas);
-                let step = 0;
-                function draw() {
-                    ctx.fillStyle = 'rgba(15, 23, 42, 0.22)';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    const x = canvas.width / 2 + Math.sin(step) * Math.min(300, canvas.width * 0.25);
-                    const y = canvas.height / 2 + Math.cos(step) * Math.min(200, canvas.height * 0.25);
-                    const grad = ctx.createRadialGradient(x, y, 10, x, y, 420);
-                    grad.addColorStop(0, '#2563eb');
-                    grad.addColorStop(1, 'transparent');
-                    ctx.fillStyle = grad;
-                    ctx.beginPath();
-                    ctx.arc(x, y, 420, 0, Math.PI * 2);
-                    ctx.fill();
-                    step += 0.02;
-                    requestAnimationFrame(draw);
-                }
-                draw();
-            }
         }
 
         function triggerRemoteUI() {
