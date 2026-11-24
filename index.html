@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>معارض كليكس - عرض الشاشات الذكي الشامل</title>
-    <script>
+    <script crossorigin="anonymous">
     (function () {
         var PFX = 'clix_asset_v1_';
         var ASSETS = [
@@ -31,8 +31,8 @@
                     return;
                 } catch (e) {}
             }
-            if (a.t === 'js') document.write('<script src="' + a.u + '"><\/script>');
-            else document.write('<link rel="stylesheet" href="' + a.u + '">');
+            if (a.t === 'js') document.write('<script crossorigin="anonymous" src="' + a.u + '"><\/script>');
+            else document.write('<link rel="stylesheet" crossorigin="anonymous" href="' + a.u + '">');
         });
 
         function fetchText(u) {
@@ -90,7 +90,7 @@
         });
     })();
     </script>
-    <script>
+    <script crossorigin="anonymous">
     (function () {
         var LOG_KEY = 'clix_diag_log', ALIVE_KEY = 'clix_diag_alive';
         function hhmmss(t) { var d = new Date(t); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ':' + ('0' + d.getSeconds()).slice(-2); }
@@ -114,7 +114,9 @@
 
         window.addEventListener('error', function (e) {
             if (e && e.target && e.target.tagName === 'VIDEO') return;
-            window.clixLog('خطأ JS: ' + (e.message || '') + ' @' + (e.lineno || ''));
+            var srcName = (e && e.filename) ? e.filename.split('/').pop() : 'inline';
+            var loc = (e && e.lineno) ? (' @' + srcName + ':' + e.lineno) : (' @' + srcName);
+            window.clixLog('خطأ JS: ' + (e.message || 'Script error') + loc);
         });
         window.addEventListener('unhandledrejection', function (e) { window.clixLog('Promise مرفوض: ' + ((e.reason && (e.reason.message || e.reason.name)) || e.reason)); });
         window.addEventListener('offline', function () { window.clixLog('حدث: offline'); });
@@ -339,7 +341,7 @@
                     <i class="fa-solid fa-bolt text-emerald-400"></i> التحديث التلقائي المباشر مفعل بنجاح على جميع الشاشات المتصلة
                 </h4>
                 <p id="videoOfflineStatusBanner" class="text-[11px] text-slate-300">
-                    يتم تشغيل الفيديو مباشرة من المصدر المفتوح ومحاولة حفظه للعمل عند انقطاع الإنترنت.
+                    يتم تشغيل الفيديو (video.mp4) ومحاولة حفظه للعمل عند انقطاع الإنترنت.
                 </p>
             </div>
 
@@ -411,7 +413,7 @@
     </div>
 
     <script>
-        const DEFAULT_OPENSOURCE_VIDEO = "https://vjs.zencdn.net/v/oceans.mp4";
+        const DEFAULT_OPENSOURCE_VIDEO = "video.mp4";
         const VIDEO_CACHE_DB = "clix_tv_video_db_v1";
         const VIDEO_CACHE_STORE = "videos";
         const VIDEO_CACHE_KEY = "active_screen_video";
@@ -587,7 +589,7 @@
                     activeObjectUrl = null;
                 }
                 videoEl.muted = !userWantsAudio;
-                if (videoEl.src !== url) {
+                if (videoEl.src !== url && !videoEl.src.endsWith('/' + url)) {
                     videoEl.src = url;
                     videoEl.load();
                 }
@@ -602,7 +604,7 @@
             videoDownloadInFlight = true;
             try {
                 vlog('تنزيل الفيديو للعمل أوفلاين: ' + url);
-                const res = await fetch(url, { mode: 'cors', cache: 'no-store' });
+                const res = await fetch(url, { mode: 'cors', cache: 'default' });
                 if (!res.ok) throw new Error('HTTP ' + res.status);
                 const blob = await res.blob();
                 if (!blob || blob.size < 1024) throw new Error('حجم ملف الفيديو غير صالح');
@@ -616,12 +618,13 @@
 
                 if (saved) {
                     vlog('تم حفظ الفيديو محلياً للعمل بدون إنترنت (' + Math.round(normalizedBlob.size / 1048576) + 'MB)');
-                    updateOfflineVideoBanner('تم حفظ الفيديو محلياً على الشاشة للعمل تلقائياً عند انقطاع الإنترنت.');
+                    updateOfflineVideoBanner('تم حفظ ' + url + ' محلياً على الشاشة للعمل تلقائياً عند انقطاع الإنترنت.');
                 } else {
                     vlog('تم تحميل الفيديو في الذاكرة المؤقتة (تعذر حفظه في IndexedDB)');
                 }
             } catch (err) {
-                vlog('تعذر تنزيل الفيديو محلياً حالياً: ' + ((err && err.message) || err));
+                const msg = (err && err.message) || String(err);
+                vlog('تنبيه: لم يتم حفظ نسخة أوفلاين عبر fetch (' + msg + ') — الفيديو مستمر بالعمل مباشرة');
             } finally {
                 videoDownloadInFlight = false;
             }
@@ -650,8 +653,8 @@
             const cachedRecord = await readCachedVideoRecord();
             if (cachedRecord && cachedRecord.url === currentVideoSourceUrl && cachedRecord.blob) {
                 cachedBlobRef = cachedRecord.blob;
-                vlog('تشغيل الفيديو من الذاكرة المحلية (أوفلاين جاهز)');
-                updateOfflineVideoBanner('الفيديو محفوظ محلياً ويعمل حتى عند انقطاع الإنترنت.');
+                vlog('تشغيل ' + currentVideoSourceUrl + ' من الذاكرة المحلية (أوفلاين جاهز)');
+                updateOfflineVideoBanner('الفيديو (' + currentVideoSourceUrl + ') محفوظ محلياً ويعمل حتى عند انقطاع الإنترنت.');
                 playBlobOnVideo(videoEl, cachedBlobRef);
                 if (navigator.onLine !== false && !forceReset) {
                     downloadAndSaveVideoForOffline(currentVideoSourceUrl);
