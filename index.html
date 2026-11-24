@@ -157,7 +157,7 @@
             border: 3px solid #3b82f6 !important;
             background: rgba(30, 58, 138, 0.5) !important;
             box-shadow: 0 0 35px rgba(59, 130, 246, 0.65) !important;
-            transform: scale(1.02);
+            transform: scale(1.01);
             z-index: 10;
         }
 
@@ -166,7 +166,7 @@
             outline: none !important;
             border-color: #fbbf24 !important;
             box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.85), 0 0 25px rgba(251, 191, 36, 0.6) !important;
-            transform: scale(1.04) !important;
+            transform: scale(1.02) !important;
             z-index: 40 !important;
             transition: all 0.18s ease-out !important;
         }
@@ -203,104 +203,104 @@
         }
     </style>
 </head>
-<body class="bg-slate-950 text-white h-screen overflow-hidden flex flex-col justify-between select-none">
+<body class="bg-slate-950 text-white min-h-screen lg:h-screen overflow-x-hidden lg:overflow-hidden flex flex-col justify-between select-none">
 
     <video id="bgVideo" autoplay loop muted playsinline preload="metadata" crossorigin="anonymous" class="fullscreen-bg"></video>
     <canvas id="fallbackCanvas" class="fullscreen-bg hidden"></canvas>
-    <div id="overlayLayer" class="absolute inset-0 bg-slate-950/80 backdrop-blur-[2px] z-0 fade-transition"></div>
+    <div id="overlayLayer" class="fixed inset-0 bg-slate-950/80 backdrop-blur-[2px] z-0 fade-transition pointer-events-none"></div>
 
-    <header id="appHeader" class="glass-panel relative z-30 px-6 py-2 flex items-center justify-between border-b border-slate-800 fade-transition shrink-0">
-        <div class="flex items-center gap-3 pixel-protector">
-            <div class="bg-[#00529b] text-white px-4 py-1.5 rounded-xl border border-blue-400/30 shadow-2xl flex flex-col items-center justify-center tracking-wide">
-                <div class="text-xl font-black leading-none tracking-tighter" style="font-family: 'Tajawal', sans-serif;">كليكـس</div>
-                <div class="flex items-center gap-1 text-[11px] font-bold mt-0.5">
+    <header id="appHeader" class="glass-panel relative z-30 px-3 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 fade-transition shrink-0">
+        <div class="flex items-center gap-2 sm:gap-3 pixel-protector min-w-0">
+            <div class="bg-[#00529b] text-white px-3 sm:px-4 py-1 sm:py-1.5 rounded-xl border border-blue-400/30 shadow-2xl flex flex-col items-center justify-center tracking-wide shrink-0">
+                <div class="text-lg sm:text-xl font-black leading-none tracking-tighter" style="font-family: 'Tajawal', sans-serif;">كليكـس</div>
+                <div class="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold mt-0.5">
                     <span>clix</span>
-                    <span class="text-[9px] text-blue-200 font-normal">| إلكترونيات من إكسترا</span>
+                    <span class="text-[8px] sm:text-[9px] text-blue-200 font-normal">| إلكترونيات من إكسترا</span>
                 </div>
             </div>
-            <div>
-                <h1 class="text-xs font-bold text-slate-200">منصة المقارنة والعرض التفاعلي الشاملة</h1>
-                <p class="text-[9px] text-blue-400">ضمان الوكيل الرسمي المعتمد • VAT Included</p>
+            <div class="min-w-0">
+                <h1 class="text-[11px] sm:text-xs font-bold text-slate-200 truncate">منصة المقارنة والعرض التفاعلي الشاملة</h1>
+                <p class="text-[9px] text-blue-400 truncate">ضمان الوكيل الرسمي المعتمد • VAT Included</p>
             </div>
         </div>
 
-        <div class="flex items-center gap-3">
-            <div id="syncStatusIndicator" class="bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5" title="حالة الاتصال السحابي">
+        <div class="flex flex-wrap items-center gap-1.5 sm:gap-3">
+            <div id="syncStatusIndicator" class="bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5" title="حالة الاتصال السحابي">
                 <i class="fa-solid fa-cloud-arrow-down text-emerald-400"></i>
                 <span id="syncStatusText">جاري الاتصال...</span>
             </div>
 
-            <button tabindex="0" onclick="openSpecsFullscreenModal()" id="specsModalBtn" class="tv-focusable bg-indigo-600/40 hover:bg-indigo-600/60 text-indigo-100 px-3 py-1.5 rounded-lg border border-indigo-400/50 text-xs font-bold flex items-center gap-2 shadow-lg transition cursor-pointer">
+            <button tabindex="0" onclick="openSpecsFullscreenModal()" id="specsModalBtn" class="tv-focusable bg-indigo-600/40 hover:bg-indigo-600/60 text-indigo-100 px-2.5 sm:px-3 py-1.5 rounded-lg border border-indigo-400/50 text-[11px] sm:text-xs font-bold flex items-center gap-1.5 shadow-lg transition cursor-pointer">
                 <i class="fa-solid fa-expand text-indigo-300"></i>
                 <span>عرض المواصفات الكاملة</span>
             </button>
 
-            <button tabindex="0" onclick="toggleVideoAudio()" id="audioToggleBtn" class="tv-focusable bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg border border-slate-700 text-xs font-bold flex items-center gap-2 shadow-lg transition cursor-pointer">
+            <button tabindex="0" onclick="toggleVideoAudio()" id="audioToggleBtn" class="tv-focusable bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 sm:px-3 py-1.5 rounded-lg border border-slate-700 text-[11px] sm:text-xs font-bold flex items-center gap-1.5 shadow-lg transition cursor-pointer">
                 <i class="fa-solid fa-volume-xmark text-red-400" id="audioIcon"></i>
                 <span id="audioText">إلغاء كتم الصوت</span>
             </button>
-            <div class="text-xs text-slate-300 flex items-center gap-1.5">
+            <div class="hidden sm:flex text-xs text-slate-300 items-center gap-1.5">
                 <i class="fa-solid fa-shield-halved text-blue-400"></i>
                 <span>معارض كليكس</span>
             </div>
         </div>
     </header>
 
-    <main id="mainContentArea" class="container mx-auto px-4 py-1.5 flex-grow flex flex-col justify-center relative z-20 pixel-protector fade-transition h-full overflow-hidden">
+    <main id="mainContentArea" class="container mx-auto px-3 sm:px-4 py-2 sm:py-1.5 flex-grow flex flex-col justify-center relative z-20 pixel-protector fade-transition lg:h-full lg:overflow-hidden">
 
-        <div class="flex justify-center items-center mb-1 bg-slate-900/85 px-4 py-0.5 rounded-xl border border-slate-800 backdrop-blur max-w-xl mx-auto shrink-0">
-            <span id="modeStatusBadge" class="bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 text-[11px] px-3 py-0.5 rounded-full font-bold flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        <div class="flex justify-center items-center mb-2 sm:mb-1 bg-slate-900/85 px-3 sm:px-4 py-1 sm:py-0.5 rounded-xl border border-slate-800 backdrop-blur max-w-xl mx-auto shrink-0 w-full sm:w-auto">
+            <span id="modeStatusBadge" class="bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 text-[10px] sm:text-[11px] px-2.5 sm:px-3 py-0.5 rounded-full font-bold flex items-center gap-1.5 text-center">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0"></span>
                 <span>شامل الضريبة 15% وضمان الوكيل | VAT Included & Official Warranty</span>
             </span>
         </div>
 
-        <div id="tvCardsGrid" class="grid grid-cols-4 gap-3 max-w-6xl mx-auto my-auto items-stretch justify-center w-full"></div>
+        <div id="tvCardsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 max-w-6xl mx-auto my-auto items-stretch justify-center w-full"></div>
 
-        <div class="mt-1.5 shrink-0 max-w-4xl mx-auto w-full">
-            <div class="flex justify-center items-center gap-4 mb-1.5 relative z-30">
-                <button id="brandSelectBtn" tabindex="0" onclick="changeBrandSecurely()" class="tv-focusable bg-blue-600/40 hover:bg-blue-600/60 border border-blue-400/70 px-6 py-2 rounded-2xl text-blue-100 font-black text-base flex items-center gap-3 transition shadow-2xl cursor-pointer backdrop-blur">
-                    <i class="fa-solid fa-tags text-blue-300 text-lg animate-pulse"></i>
-                    <span id="headerBrandName" class="text-base">سامسونج (Samsung)</span>
+        <div class="mt-3 sm:mt-1.5 shrink-0 max-w-4xl mx-auto w-full">
+            <div class="flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-4 mb-2 sm:mb-1.5 relative z-30">
+                <button id="brandSelectBtn" tabindex="0" onclick="changeBrandSecurely()" class="tv-focusable w-full sm:w-auto justify-center bg-blue-600/40 hover:bg-blue-600/60 border border-blue-400/70 px-4 sm:px-6 py-2 rounded-2xl text-blue-100 font-black text-sm sm:text-base flex items-center gap-2.5 transition shadow-2xl cursor-pointer backdrop-blur">
+                    <i class="fa-solid fa-tags text-blue-300 text-base sm:text-lg animate-pulse"></i>
+                    <span id="headerBrandName" class="text-sm sm:text-base">سامسونج (Samsung)</span>
                     <i class="fa-solid fa-lock text-xs text-amber-400 ml-1"></i>
                 </button>
 
-                <button id="displayedSizeBtn" tabindex="0" onclick="selectDisplayedSizeSecurely()" class="tv-focusable bg-amber-600/40 hover:bg-amber-600/60 border border-amber-400/70 px-5 py-2 rounded-2xl text-amber-100 font-bold text-sm flex items-center gap-2.5 transition shadow-2xl cursor-pointer backdrop-blur">
-                    <i class="fa-solid fa-tv text-amber-300 text-base"></i>
-                    <span>الشاشة المعروضة: <strong id="currentDisplayedBadge" class="text-white text-sm">--</strong></span>
+                <button id="displayedSizeBtn" tabindex="0" onclick="selectDisplayedSizeSecurely()" class="tv-focusable w-full sm:w-auto justify-center bg-amber-600/40 hover:bg-amber-600/60 border border-amber-400/70 px-4 sm:px-5 py-2 rounded-2xl text-amber-100 font-bold text-xs sm:text-sm flex items-center gap-2 transition shadow-2xl cursor-pointer backdrop-blur">
+                    <i class="fa-solid fa-tv text-amber-300 text-sm sm:text-base"></i>
+                    <span>الشاشة المعروضة: <strong id="currentDisplayedBadge" class="text-white text-xs sm:text-sm">--</strong></span>
                     <i class="fa-solid fa-lock text-xs text-amber-400 ml-1"></i>
                 </button>
             </div>
 
-            <div class="bg-gradient-to-r from-amber-950/70 via-slate-900/95 to-amber-950/70 backdrop-blur border border-amber-500/50 rounded-xl px-4 py-1 flex items-center justify-between shadow-xl">
+            <div class="bg-gradient-to-r from-amber-950/70 via-slate-900/95 to-amber-950/70 backdrop-blur border border-amber-500/50 rounded-xl px-3 sm:px-4 py-1.5 sm:py-1 flex flex-wrap items-center justify-between gap-2 shadow-xl">
                 <div class="flex items-center gap-2 text-xs md:text-sm font-bold text-amber-100 tracking-wide">
-                    <i class="fa-solid fa-crown text-amber-400 text-base animate-bounce"></i>
+                    <i class="fa-solid fa-crown text-amber-400 text-sm sm:text-base animate-bounce shrink-0"></i>
                     <div id="animatedReadingText" class="flex flex-wrap gap-1.5 items-center"></div>
                 </div>
-                <span class="text-[11px] bg-amber-500 text-slate-950 px-2.5 py-0.5 rounded-lg font-black shrink-0 tracking-wider">عروض حصريّة</span>
+                <span class="text-[10px] sm:text-[11px] bg-amber-500 text-slate-950 px-2.5 py-0.5 rounded-lg font-black shrink-0 tracking-wider">عروض حصريّة</span>
             </div>
         </div>
 
     </main>
 
-    <footer id="appFooter" class="glass-panel relative z-30 py-1 px-6 border-t border-slate-900 text-xs fade-transition flex items-center justify-between shrink-0">
-        <marquee class="text-slate-300 font-medium flex-grow">
+    <footer id="appFooter" class="glass-panel relative z-30 py-1.5 sm:py-1 px-3 sm:px-6 border-t border-slate-900 text-xs fade-transition flex items-center justify-between gap-2 shrink-0">
+        <marquee class="text-slate-300 font-medium flex-grow text-[11px] sm:text-xs">
             ⚡ الأسعار تشمل ضريبة القيمة المضافة 15% • Prices Include 15% VAT • ضمان الوكيل الرسمي المعتمد • Official Warranty ⚡
         </marquee>
-        
-        <button id="adminBtn" tabindex="0" onclick="openAdminModalWithAuth()" class="tv-focusable opacity-0 pointer-events-none transition-opacity duration-300 bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1 rounded-lg border border-slate-700 text-xs font-bold flex items-center gap-1.5 shadow-xl shrink-0 mr-4 cursor-pointer">
+
+        <button id="adminBtn" tabindex="0" onclick="openAdminModalWithAuth()" class="tv-focusable opacity-0 pointer-events-none transition-opacity duration-300 bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1 rounded-lg border border-slate-700 text-xs font-bold flex items-center gap-1.5 shadow-xl shrink-0 mr-2 sm:mr-4 cursor-pointer">
             <i class="fa-solid fa-gear text-blue-400"></i>
             <span>لوحة المشرف</span>
         </button>
     </footer>
 
-    <div id="specsFullscreenModal" class="fixed inset-0 bg-slate-950/92 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
-        <div id="specsFullscreenContent" class="w-[94vw] max-w-5xl bg-slate-900/98 border-2 border-blue-500/50 rounded-3xl p-6 md:p-8 shadow-[0_0_60px_rgba(37,99,235,0.45)] max-h-[92vh] overflow-y-auto flex flex-col justify-between gap-6">
+    <div id="specsFullscreenModal" class="fixed inset-0 bg-slate-950/92 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-4 hidden">
+        <div id="specsFullscreenContent" class="w-[96vw] sm:w-[94vw] max-w-5xl bg-slate-900/98 border-2 border-blue-500/50 rounded-3xl p-4 sm:p-8 shadow-[0_0_60px_rgba(37,99,235,0.45)] max-h-[92vh] overflow-y-auto flex flex-col justify-between gap-4 sm:gap-6">
         </div>
     </div>
 
-    <div id="pinModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 flex items-center justify-center hidden">
-        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-96 shadow-2xl text-center">
+    <div id="pinModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center">
             <h3 class="text-lg font-bold text-white mb-3"><i class="fa-solid fa-lock text-amber-400"></i> إدخال كلمة المرور</h3>
             <p id="pinModalDesc" class="text-xs text-slate-400 mb-4">يرجى إدخال الرمز السري للمتابعة:</p>
             <input type="password" inputmode="numeric" id="pinInput" placeholder="••••" class="tv-focusable w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-center text-xl text-white font-mono tracking-widest mb-4 focus:outline-none focus:border-blue-500" onkeydown="if(event.key === 'Enter') submitPinCode()">
@@ -311,10 +311,10 @@
         </div>
     </div>
 
-    <div id="remoteSelectionModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 flex items-center justify-center hidden">
-        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+    <div id="remoteSelectionModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-5 sm:p-6 w-full max-w-md shadow-2xl">
             <div class="flex justify-between items-center border-b border-slate-800 pb-3 mb-4">
-                <h3 id="remoteSelectionTitle" class="text-base font-bold text-amber-400 flex items-center gap-2">
+                <h3 id="remoteSelectionTitle" class="text-sm sm:text-base font-bold text-amber-400 flex items-center gap-2">
                     <i class="fa-solid fa-list-check"></i>
                     <span>اختر من القائمة</span>
                 </h3>
@@ -324,14 +324,14 @@
         </div>
     </div>
 
-    <div id="adminModal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex items-center justify-center hidden">
-        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-5xl p-6 shadow-2xl max-h-[92vh] overflow-y-auto">
+    <div id="adminModal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-4 hidden">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-5xl p-4 sm:p-6 shadow-2xl max-h-[92vh] overflow-y-auto">
             <div class="flex justify-between items-center pb-4 border-b border-slate-800 mb-4">
-                <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                <h3 class="text-base sm:text-xl font-bold text-white flex items-center gap-2">
                     <i class="fa-solid fa-user-shield text-amber-400"></i>
                     <span>لوحة المشرف - التحديث الفوري المباشر لجميع الشاشات</span>
                 </h3>
-                <button tabindex="0" onclick="toggleAdminModal()" class="tv-focusable text-slate-400 hover:text-white text-lg w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center cursor-pointer">
+                <button tabindex="0" onclick="toggleAdminModal()" class="tv-focusable text-slate-400 hover:text-white text-lg w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center cursor-pointer shrink-0">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
@@ -402,7 +402,7 @@
 
                 <div id="adminSizesContainer" class="space-y-4"></div>
 
-                <div class="flex gap-3 pt-4 border-t border-slate-800">
+                <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-800">
                     <button tabindex="0" onclick="saveAdminChanges()" class="tv-focusable flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition text-sm cursor-pointer">
                         <i class="fa-solid fa-cloud-arrow-up ml-1"></i> حفظ وتحديث مباشر لجميع الشاشات
                     </button>
@@ -882,10 +882,10 @@
             html += visibleModels.map(m => {
                 const isActive = m.sku === currentActiveSku;
                 return `
-                <div class="bg-slate-800/90 border border-slate-700 rounded-xl px-3.5 py-2.5 flex items-center justify-between gap-2">
-                    <button tabindex="0" data-action="select-size" data-sku="${m.sku}" class="tv-focusable flex-1 text-right text-white font-bold text-xs sm:text-sm flex items-center justify-between py-1 cursor-pointer">
-                        <span>مقاس ${m.size}" بوصة - ${m.titleAr || ''} <span class="text-slate-400 font-mono text-[11px]">(${m.sku})</span></span>
-                        ${isActive ? '<span class="text-[11px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full mr-2">المعروضة</span>' : ''}
+                <div class="bg-slate-800/90 border border-slate-700 rounded-xl px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2">
+                    <button tabindex="0" data-action="select-size" data-sku="${m.sku}" class="tv-focusable flex-1 min-w-0 text-right text-white font-bold text-xs sm:text-sm flex items-center justify-between gap-2 py-1 cursor-pointer">
+                        <span class="break-words">مقاس ${m.size}" بوصة - ${m.titleAr || ''} <span class="text-slate-400 font-mono text-[11px]">(${m.sku})</span></span>
+                        ${isActive ? '<span class="text-[11px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full shrink-0">المعروضة</span>' : ''}
                     </button>
                     <button tabindex="0" data-action="hide-size" data-sku="${m.sku}" title="إخفاء هذا المقاس من الشاشة" class="tv-focusable bg-red-900/60 hover:bg-red-700 text-red-200 border border-red-700/70 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 shrink-0 cursor-pointer">
                         <i class="fa-solid fa-trash-can"></i>
@@ -897,8 +897,8 @@
             if (hiddenModels.length > 0) {
                 html += `<div class="text-[11px] text-slate-400 font-bold pt-3 border-t border-slate-800">المقاسات المخفية حالياً على هذه الشاشة (اضغط لاستعادتها):</div>`;
                 html += hiddenModels.map(m => `
-                <div class="bg-slate-900/80 border border-slate-800 rounded-xl px-3.5 py-2 flex items-center justify-between gap-2 opacity-85">
-                    <span class="text-slate-300 text-xs font-bold">مقاس ${m.size}" بوصة - ${m.titleAr || ''} <span class="text-slate-500 font-mono text-[10px]">(${m.sku})</span></span>
+                <div class="bg-slate-900/80 border border-slate-800 rounded-xl px-3.5 py-2 flex flex-wrap items-center justify-between gap-2 opacity-85">
+                    <span class="text-slate-300 text-xs font-bold break-words min-w-0 flex-1">مقاس ${m.size}" بوصة - ${m.titleAr || ''} <span class="text-slate-500 font-mono text-[10px]">(${m.sku})</span></span>
                     <button tabindex="0" data-action="restore-size" data-sku="${m.sku}" class="tv-focusable bg-emerald-700/60 hover:bg-emerald-600 text-emerald-100 border border-emerald-500/50 px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1 shrink-0 cursor-pointer">
                         <i class="fa-solid fa-rotate-left"></i>
                         <span>إظهار</span>
@@ -1398,91 +1398,91 @@
 
             const contentEl = document.getElementById('specsFullscreenContent');
             contentEl.innerHTML = `
-                <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-5">
-                    <div class="flex items-center gap-4">
-                        <div class="bg-blue-600/20 border border-blue-400/40 rounded-2xl px-5 py-3 text-center">
-                            <div class="text-4xl md:text-5xl font-black text-blue-400 leading-none">${tv.size || '--'}"</div>
+                <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4 sm:pb-5">
+                    <div class="flex flex-wrap items-center gap-3 sm:gap-4 min-w-0">
+                        <div class="bg-blue-600/20 border border-blue-400/40 rounded-2xl px-4 sm:px-5 py-2.5 sm:py-3 text-center shrink-0">
+                            <div class="text-3xl sm:text-5xl font-black text-blue-400 leading-none">${tv.size || '--'}"</div>
                             <div class="text-xs text-blue-200 font-bold mt-1">بوصة</div>
                         </div>
-                        <div>
-                            <div class="flex flex-wrap items-center gap-2 mb-1">
-                                <span class="text-xs md:text-sm font-black bg-blue-950 text-blue-300 border border-blue-700/60 px-3 py-1 rounded-full">${currentBrand.name}</span>
-                                <span class="text-xs md:text-sm font-mono font-bold bg-slate-800 text-amber-300 border border-slate-700 px-3 py-1 rounded-full">SKU: ${tv.sku || 'N/A'}</span>
-                                ${tv.promoBadge ? `<span class="text-xs md:text-sm font-black bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 px-3 py-1 rounded-full"><i class="fa-solid fa-bolt"></i> ${tv.promoBadge}</span>` : ''}
-                                ${isDisplayedHere ? `<span class="text-xs md:text-sm font-black bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 px-3 py-1 rounded-full"><i class="fa-solid fa-star text-amber-300"></i> الشاشة المعروضة حالياً</span>` : ''}
+                        <div class="min-w-0">
+                            <div class="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
+                                <span class="text-xs sm:text-sm font-black bg-blue-950 text-blue-300 border border-blue-700/60 px-2.5 sm:px-3 py-1 rounded-full">${currentBrand.name}</span>
+                                <span class="text-xs sm:text-sm font-mono font-bold bg-slate-800 text-amber-300 border border-slate-700 px-2.5 sm:px-3 py-1 rounded-full">SKU: ${tv.sku || 'N/A'}</span>
+                                ${tv.promoBadge ? `<span class="text-xs sm:text-sm font-black bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 px-2.5 sm:px-3 py-1 rounded-full"><i class="fa-solid fa-bolt"></i> ${tv.promoBadge}</span>` : ''}
+                                ${isDisplayedHere ? `<span class="text-xs sm:text-sm font-black bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 px-2.5 sm:px-3 py-1 rounded-full"><i class="fa-solid fa-star text-amber-300"></i> الشاشة المعروضة حالياً</span>` : ''}
                             </div>
-                            <h2 class="text-2xl md:text-4xl font-black text-white leading-tight">${tv.titleAr || ''}</h2>
-                            <p class="text-base md:text-xl text-blue-300 font-bold mt-0.5" dir="ltr">${tv.titleEn || ''}</p>
+                            <h2 class="text-xl sm:text-4xl font-black text-white leading-tight break-words">${tv.titleAr || ''}</h2>
+                            <p class="text-sm sm:text-xl text-blue-300 font-bold mt-0.5 break-words" dir="ltr">${tv.titleEn || ''}</p>
                         </div>
                     </div>
 
-                    <button tabindex="0" onclick="closeSpecsFullscreenModal()" class="tv-focusable bg-red-600/20 hover:bg-red-600/40 text-red-200 border border-red-500/50 px-5 py-3 rounded-2xl text-sm md:text-base font-black flex items-center gap-2 cursor-pointer transition">
-                        <i class="fa-solid fa-xmark text-lg"></i>
+                    <button tabindex="0" onclick="closeSpecsFullscreenModal()" class="tv-focusable bg-red-600/20 hover:bg-red-600/40 text-red-200 border border-red-500/50 px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl text-xs sm:text-base font-black flex items-center gap-2 cursor-pointer transition shrink-0">
+                        <i class="fa-solid fa-xmark text-base sm:text-lg"></i>
                         <span>إغلاق النافذة</span>
                     </button>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                    <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 min-w-0">
                         <div class="text-xs text-slate-400 font-bold mb-1">الموديل</div>
-                        <div class="text-lg md:text-xl font-black text-blue-300 break-words" dir="ltr">${tv.titleEn || '--'}</div>
+                        <div class="text-base sm:text-xl font-black text-blue-300 break-words" dir="ltr">${tv.titleEn || '--'}</div>
                     </div>
-                    <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4">
+                    <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 min-w-0">
                         <div class="text-xs text-slate-400 font-bold mb-1">معدل التحديث (Hz)</div>
-                        <div class="text-lg md:text-xl font-black text-indigo-300"><i class="fa-solid fa-bolt text-amber-400 ml-1"></i>${tv.refreshRate || '60Hz'}</div>
+                        <div class="text-base sm:text-xl font-black text-indigo-300 break-words"><i class="fa-solid fa-bolt text-amber-400 ml-1"></i>${tv.refreshRate || '60Hz'}</div>
                     </div>
-                    <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4">
+                    <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 min-w-0">
                         <div class="text-xs text-slate-400 font-bold mb-1">نظام التشغيل (OS)</div>
-                        <div class="text-lg md:text-xl font-black text-white"><i class="fa-solid fa-microchip text-blue-400 ml-1"></i>${tv.osSystem || 'Smart TV'}</div>
+                        <div class="text-base sm:text-xl font-black text-white break-words"><i class="fa-solid fa-microchip text-blue-400 ml-1"></i>${tv.osSystem || 'Smart TV'}</div>
                     </div>
-                    <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4">
+                    <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 min-w-0">
                         <div class="text-xs text-slate-400 font-bold mb-1">بلد المنشأ</div>
-                        <div class="text-lg md:text-xl font-black text-cyan-300">${tv.originAr || 'وارد الوكيل'}</div>
+                        <div class="text-base sm:text-xl font-black text-cyan-300 break-words">${tv.originAr || 'وارد الوكيل'}</div>
                     </div>
                 </div>
 
-                <div class="bg-slate-950/90 border border-slate-800 rounded-2xl p-5 md:p-6">
-                    <h3 class="text-base md:text-lg font-black text-amber-300 mb-3 flex items-center gap-2">
+                <div class="bg-slate-950/90 border border-slate-800 rounded-2xl p-4 sm:p-6">
+                    <h3 class="text-sm sm:text-lg font-black text-amber-300 mb-3 flex items-center gap-2">
                         <i class="fa-solid fa-list-check"></i>
                         <span>جميع المواصفات والمزايا التفصيلية</span>
                     </h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                         ${(specsList.length > 0 ? specsList : [tv.specsAr || 'لا توجد مواصفات إضافية مسجلة']).map(spec => `
-                            <div class="bg-slate-900/90 border border-slate-800 rounded-xl px-4 py-3 text-sm md:text-lg font-bold text-slate-100 flex items-center gap-2.5">
-                                <i class="fa-solid fa-circle-check text-emerald-400 shrink-0"></i>
+                            <div class="bg-slate-900/90 border border-slate-800 rounded-xl px-4 py-3 text-xs sm:text-lg font-bold text-slate-100 flex items-start gap-2.5 break-words">
+                                <i class="fa-solid fa-circle-check text-emerald-400 shrink-0 mt-1"></i>
                                 <span>${spec}</span>
                             </div>
                         `).join('')}
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 items-stretch">
                     <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 flex flex-col justify-center">
                         <div class="text-xs text-slate-400 font-bold mb-1">الضمان الرسمي</div>
-                        <div class="text-lg md:text-2xl font-black text-amber-400">${tv.warrantyAr || 'سنتان (ضمان الوكيل)'}</div>
+                        <div class="text-base sm:text-2xl font-black text-amber-400 break-words">${tv.warrantyAr || 'سنتان (ضمان الوكيل)'}</div>
                     </div>
 
-                    <div class="bg-gradient-to-r from-amber-950/60 to-slate-900 border border-amber-500/50 rounded-2xl p-4 flex items-center justify-between gap-3">
+                    <div class="bg-gradient-to-r from-amber-950/60 to-slate-900 border border-amber-500/50 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
                         <div>
-                            <div class="text-sm md:text-base font-black text-amber-200 flex items-center gap-2">
-                                <i class="fa-solid fa-crown text-amber-400 text-lg"></i>
+                            <div class="text-xs sm:text-base font-black text-amber-200 flex items-center gap-2">
+                                <i class="fa-solid fa-crown text-amber-400 text-base sm:text-lg"></i>
                                 <span>الضمان الذهبي 5 سنوات</span>
                             </div>
                             <div class="text-xs text-amber-100/80 mt-0.5">حماية ممتدة من إكسترا</div>
                         </div>
-                        <div class="text-xl md:text-2xl font-black text-amber-300 whitespace-nowrap">${goldenWarrantyPrice}</div>
+                        <div class="text-lg sm:text-2xl font-black text-amber-300 whitespace-nowrap">${goldenWarrantyPrice}</div>
                     </div>
 
-                    <div class="bg-emerald-950/40 border border-emerald-500/40 rounded-2xl p-4 flex items-center justify-between gap-3">
+                    <div class="bg-emerald-950/40 border border-emerald-500/40 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
                         <div>
                             <div class="text-xs text-emerald-300 font-bold mb-1">السعر شامل الضريبة 15%</div>
-                            <div class="flex items-baseline gap-2">
-                                <span class="text-3xl md:text-4xl font-black text-emerald-400">${tv.price}</span>
-                                <span class="text-sm font-bold text-emerald-300">ر.س</span>
-                                ${tv.oldPrice ? `<span class="text-sm md:text-base text-slate-400 line-through">${tv.oldPrice}</span>` : ''}
+                            <div class="flex items-baseline gap-2 flex-wrap">
+                                <span class="text-2xl sm:text-4xl font-black text-emerald-400">${tv.price}</span>
+                                <span class="text-xs sm:text-sm font-bold text-emerald-300">ر.س</span>
+                                ${tv.oldPrice ? `<span class="text-xs sm:text-base text-slate-400 line-through">${tv.oldPrice}</span>` : ''}
                             </div>
                         </div>
-                        <span class="text-xs md:text-sm bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-3 py-1.5 rounded-xl font-black shrink-0">متوفر</span>
+                        <span class="text-xs sm:text-sm bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-3 py-1.5 rounded-xl font-black shrink-0">متوفر</span>
                     </div>
                 </div>
             `;
@@ -1502,9 +1502,9 @@
             const listContainer = document.getElementById('remoteSelectionList');
 
             listContainer.innerHTML = options.map((opt, idx) => `
-                <button tabindex="0" data-opt-index="${idx}" class="tv-focusable w-full text-right bg-slate-800 hover:bg-blue-600/40 border border-slate-700 rounded-xl px-4 py-3 text-white font-bold text-sm flex items-center justify-between transition cursor-pointer">
-                    <span>${opt.label}</span>
-                    ${opt.active ? '<span class="text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full">الحالي</span>' : '<i class="fa-solid fa-chevron-left text-slate-400 text-xs"></i>'}
+                <button tabindex="0" data-opt-index="${idx}" class="tv-focusable w-full text-right bg-slate-800 hover:bg-blue-600/40 border border-slate-700 rounded-xl px-4 py-3 text-white font-bold text-sm flex items-center justify-between gap-2 transition cursor-pointer">
+                    <span class="break-words">${opt.label}</span>
+                    ${opt.active ? '<span class="text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full shrink-0">الحالي</span>' : '<i class="fa-solid fa-chevron-left text-slate-400 text-xs shrink-0"></i>'}
                 </button>
             `).join('');
 
@@ -1575,7 +1575,7 @@
             }
 
             isShowingVideoOnly = !isShowingVideoOnly;
-            
+
             const contentArea = document.getElementById('mainContentArea');
             const header = document.getElementById('appHeader');
             const footer = document.getElementById('appFooter');
@@ -1589,7 +1589,7 @@
                 footer.style.opacity = '1';
                 footer.style.pointerEvents = 'auto';
                 overlay.style.opacity = '0.8';
-                
+
                 cycleTimeout = setTimeout(() => {
                     toggleDisplayMode();
                 }, 15000);
@@ -1601,7 +1601,7 @@
                 footer.style.opacity = '0';
                 footer.style.pointerEvents = 'none';
                 overlay.style.opacity = '0.1';
-                
+
                 cycleTimeout = setTimeout(() => {
                     toggleDisplayMode();
                 }, 10000);
@@ -1868,7 +1868,7 @@
             container.innerHTML = models.map((m, index) => {
                 const currentHz = m.refreshRate || '60Hz';
                 const isCustomHz = !commonHzOptions.slice(0, 4).includes(currentHz);
-                
+
                 const currentOs = m.osSystem || 'Google TV';
                 const isCustomOs = !commonOsOptions.slice(0, 5).includes(currentOs);
 
@@ -1880,8 +1880,8 @@
                             <i class="fa-solid fa-trash"></i> حذف
                         </button>
                     </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
                         <div>
                             <label class="block text-[10px] text-amber-400 font-bold mb-1">SKU:</label>
                             <input type="text" id="admin_sku_${index}" value="${m.sku || ''}" class="tv-focusable w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-amber-300 font-mono font-bold">
@@ -1979,7 +1979,7 @@
             if(nameAr) {
                 const brandId = 'brand_' + Date.now();
                 appData.brands.push({ id: brandId, name: nameAr, desc: 'شاشات عالية الوضوح' });
-                
+
                 appData.tvModels[brandId] = [
                     { sku: '900' + Math.floor(100000 + Math.random() * 900000), size: '55', promoBadge: 'عرض حصري', titleAr: `${nameAr} 55 بوصة Smart 4K`, titleEn: '55" Smart 4K', refreshRate: '60Hz', osSystem: 'Google TV', specsAr: 'دقة عالية | HDR10+', warrantyAr: 'سنتان (ضمان الوكيل)', originAr: 'السعودية', price: '1,999', oldPrice: '2,499' },
                     { sku: '900' + Math.floor(100000 + Math.random() * 900000), size: '65', promoBadge: '', titleAr: `${nameAr} 65 بوصة Smart 4K`, titleEn: '65" Smart 4K', refreshRate: '120Hz', osSystem: 'Google TV', specsAr: 'تباين ممتاز | ألوان حقيقية', warrantyAr: 'سنتان (ضمان الوكيل)', originAr: 'السعودية', price: '2,899', oldPrice: '3,499' }
@@ -2019,7 +2019,7 @@
                 alert('عذراً، الحد الأقصى المسموح به لكل ماركة هو 8 شاشات.');
                 return;
             }
-            
+
             appData.tvModels[brandId].push({
                 sku: '100' + Math.floor(100000 + Math.random() * 900000),
                 size: '65',
@@ -2062,7 +2062,7 @@
                 m.size = val(`admin_size_${index}`);
                 m.promoBadge = val(`admin_promoBadge_${index}`);
                 m.originAr = val(`admin_originAr_${index}`);
-                
+
                 const hzSelect = val(`admin_refreshRate_${index}`);
                 if (hzSelect === 'مخصص / يدوي') {
                     m.refreshRate = val(`admin_customHz_${index}`) || '60Hz';
@@ -2136,94 +2136,94 @@
                 const totalCount = models.length;
                 const isMultiRow = totalCount > 4;
 
-                let cardHeightClass = isMultiRow ? "min-h-[275px] h-auto" : "min-h-[410px] h-auto";
-                let paddingClass = isMultiRow ? "px-2.5 py-2" : "p-3.5";
-                let fontSizeClass = isMultiRow ? "text-[11px]" : "text-sm";
-                let priceSizeClass = isMultiRow ? "text-lg" : "text-2xl";
+                let cardHeightClass = isMultiRow ? "h-auto lg:min-h-[275px]" : "h-auto lg:min-h-[410px]";
+                let paddingClass = isMultiRow ? "px-3 py-2.5 lg:px-2.5 lg:py-2" : "p-3.5";
+                let fontSizeClass = isMultiRow ? "text-xs lg:text-[11px]" : "text-sm";
+                let priceSizeClass = isMultiRow ? "text-xl lg:text-lg" : "text-2xl";
 
                 grid.className = isMultiRow
-                    ? "grid grid-cols-4 gap-2 max-w-6xl mx-auto my-auto items-stretch justify-center w-full"
-                    : "grid grid-cols-4 gap-4 max-w-6xl mx-auto my-auto items-stretch justify-center w-full";
+                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-2 max-w-6xl mx-auto my-auto items-stretch justify-center w-full"
+                    : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 max-w-6xl mx-auto my-auto items-stretch justify-center w-full";
 
                 grid.innerHTML = models.map((item) => {
                     const isDisplayed = (item.sku === activeSku);
                     const goldenWarrantyPrice = calculateGoldenWarranty(item.price);
 
                     return `
-                    <div tabindex="0" role="button" onclick="openSpecsFullscreenModal('${item.sku}')" class="tv-focusable glass-panel rounded-xl ${paddingClass} flex flex-col justify-between relative transition duration-300 cursor-pointer ${cardHeightClass} ${isDisplayed ? 'featured-card' : 'hover:border-slate-500 hover:scale-[1.01]'}" style="${isDisplayed ? 'border: 3px solid #3b82f6 !important; background: rgba(30, 58, 138, 0.5) !important; box-shadow: 0 0 35px rgba(59, 130, 246, 0.65) !important;' : ''}">
-                        
+                    <div tabindex="0" role="button" onclick="openSpecsFullscreenModal('${item.sku}')" class="tv-focusable glass-panel rounded-xl ${paddingClass} flex flex-col justify-between min-w-0 relative transition duration-300 cursor-pointer ${cardHeightClass} ${isDisplayed ? 'featured-card' : 'hover:border-slate-500 hover:scale-[1.01]'}" style="${isDisplayed ? 'border: 3px solid #3b82f6 !important; background: rgba(30, 58, 138, 0.5) !important; box-shadow: 0 0 35px rgba(59, 130, 246, 0.65) !important;' : ''}">
+
                         ${isDisplayed ? `
-                            <div class="absolute top-1.5 left-2 bg-blue-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full border border-blue-200 shadow-xl flex items-center gap-1 z-30">
+                            <div class="absolute top-2 left-2 bg-blue-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full border border-blue-200 shadow-xl flex items-center gap-1 z-30">
                                 <i class="fa-solid fa-star text-amber-300"></i>
                                 <span>المعروضة</span>
                             </div>
                         ` : ''}
 
-                        <div class="flex-1 flex flex-col justify-between gap-1.5">
-                            <div>
-                                <div class="flex justify-between items-center ${isMultiRow ? 'mb-0.5' : 'mb-1 mt-0.5'}">
-                                    <span class="${isMultiRow ? 'text-xl leading-none' : 'text-3xl'} font-black text-blue-400">${item.size || '--'}"</span>
+                        <div class="flex-1 flex flex-col justify-between gap-1.5 min-w-0">
+                            <div class="min-w-0">
+                                <div class="flex flex-wrap justify-between items-center gap-1 ${isMultiRow ? 'mb-1 lg:mb-0.5' : 'mb-1 mt-0.5'}">
+                                    <span class="${isMultiRow ? 'text-2xl lg:text-xl leading-none' : 'text-3xl'} font-black text-blue-400">${item.size || '--'}"</span>
                                     ${item.promoBadge ? `
-                                        <span class="bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 ${isMultiRow ? 'text-[8px] px-1.5 py-0.5' : 'text-[10px] px-2 py-0.5'} rounded font-black shadow">
+                                        <span class="bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 ${isMultiRow ? 'text-[9px] lg:text-[8px] px-2 py-0.5 lg:px-1.5' : 'text-[10px] px-2 py-0.5'} rounded font-black shadow break-words">
                                             <i class="fa-solid fa-bolt"></i> ${item.promoBadge}
                                         </span>
                                     ` : ''}
                                 </div>
 
-                                <div class="${isMultiRow ? 'mb-0.5' : 'mb-1'} flex items-center gap-1">
-                                    <span class="${isMultiRow ? 'text-[8px] px-1.5 py-0' : 'text-[10px] px-2 py-0.5'} text-blue-400 font-mono bg-blue-950/40 rounded border border-blue-900/50">
+                                <div class="${isMultiRow ? 'mb-1 lg:mb-0.5' : 'mb-1'} flex items-center gap-1">
+                                    <span class="${isMultiRow ? 'text-[9px] lg:text-[8px] px-2 py-0.5 lg:px-1.5 lg:py-0' : 'text-[10px] px-2 py-0.5'} text-blue-400 font-mono bg-blue-950/40 rounded border border-blue-900/50 break-all">
                                         SKU: <span class="font-bold text-white">${item.sku || 'N/A'}</span>
                                     </span>
                                 </div>
 
-                                <div class="${isMultiRow ? 'mb-0.5' : 'mb-1'}">
+                                <div class="${isMultiRow ? 'mb-1 lg:mb-0.5' : 'mb-1'} min-w-0">
                                     <h3 class="font-black text-white ${fontSizeClass} leading-tight break-words">${item.titleAr || ''}</h3>
-                                    <p class="${isMultiRow ? 'text-[9px] leading-tight' : 'text-[11px]'} text-blue-300 font-medium break-words">${item.titleEn || ''}</p>
+                                    <p class="${isMultiRow ? 'text-[10px] lg:text-[9px] leading-tight' : 'text-[11px]'} text-blue-300 font-medium break-words">${item.titleEn || ''}</p>
                                 </div>
 
-                                <div class="flex flex-wrap items-center gap-1 ${isMultiRow ? 'mb-0.5' : 'mb-1'}">
-                                    <span class="bg-indigo-950/80 text-indigo-300 border border-indigo-700/50 ${isMultiRow ? 'text-[8px] px-1.5 py-0' : 'text-[10px] px-2 py-0.5'} rounded font-bold">
+                                <div class="flex flex-wrap items-center gap-1 ${isMultiRow ? 'mb-1 lg:mb-0.5' : 'mb-1'}">
+                                    <span class="bg-indigo-950/80 text-indigo-300 border border-indigo-700/50 ${isMultiRow ? 'text-[9px] lg:text-[8px] px-2 py-0.5 lg:px-1.5 lg:py-0' : 'text-[10px] px-2 py-0.5'} rounded font-bold break-words">
                                         <i class="fa-solid fa-bolt text-amber-400"></i> ${item.refreshRate || '60Hz'}
                                     </span>
-                                    <span class="bg-slate-800 text-slate-200 border border-slate-700 ${isMultiRow ? 'text-[8px] px-1.5 py-0' : 'text-[10px] px-2 py-0.5'} rounded font-bold">
+                                    <span class="bg-slate-800 text-slate-200 border border-slate-700 ${isMultiRow ? 'text-[9px] lg:text-[8px] px-2 py-0.5 lg:px-1.5 lg:py-0' : 'text-[10px] px-2 py-0.5'} rounded font-bold break-words">
                                         <i class="fa-solid fa-microchip text-blue-400"></i> ${item.osSystem || 'Smart TV'}
                                     </span>
                                 </div>
                             </div>
 
-                            <div>
-                                <div class="bg-slate-950/60 ${isMultiRow ? 'px-2 py-1.5 mb-1' : 'p-2 mb-1.5'} rounded-lg border border-slate-800/80">
-                                    <p class="text-slate-100 ${isMultiRow ? 'text-[9.5px]' : 'text-[11.5px]'} font-bold leading-relaxed whitespace-normal break-words">${item.specsAr || ''}</p>
+                            <div class="min-w-0">
+                                <div class="bg-slate-950/60 ${isMultiRow ? 'p-2 lg:px-2 lg:py-1.5 mb-1' : 'p-2 mb-1.5'} rounded-lg border border-slate-800/80">
+                                    <p class="text-slate-100 ${isMultiRow ? 'text-[10.5px] lg:text-[9.5px]' : 'text-[11.5px]'} font-bold leading-relaxed whitespace-normal break-words">${item.specsAr || ''}</p>
                                 </div>
-                                
-                                <div class="grid grid-cols-2 gap-1 ${isMultiRow ? 'mb-0.5 text-[8px] px-1.5 py-0.5' : 'mb-1 text-[10px] p-1.5'} text-slate-300 bg-slate-900/60 rounded-lg border border-slate-800">
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-1 ${isMultiRow ? 'mb-1 lg:mb-0.5 text-[9.5px] lg:text-[8px] p-1.5 lg:px-1.5 lg:py-0.5' : 'mb-1 text-[10px] p-1.5'} text-slate-300 bg-slate-900/60 rounded-lg border border-slate-800">
                                     <div class="break-words">
-                                        <span class="text-slate-400">الضمان: </span> 
+                                        <span class="text-slate-400">الضمان: </span>
                                         <span class="font-bold text-amber-400">${item.warrantyAr || 'سنتان'}</span>
                                     </div>
                                     <div class="break-words">
-                                        <span class="text-slate-400">المنشأ: </span> 
+                                        <span class="text-slate-400">المنشأ: </span>
                                         <span class="font-bold text-blue-300">${item.originAr || 'وارد الوكيل'}</span>
                                     </div>
                                 </div>
 
-                                <div class="bg-gradient-to-r from-amber-950/40 to-slate-900 ${isMultiRow ? 'px-1.5 py-0.5 mb-0.5' : 'p-1.5 mb-1'} rounded-lg border border-amber-500/40 flex items-center justify-between gap-1">
-                                    <span class="${isMultiRow ? 'text-[8.5px]' : 'text-[10px]'} text-amber-200 font-bold"><i class="fa-solid fa-crown text-amber-400 ml-1"></i> الضمان الذهبي 5 سنوات:</span>
-                                    <span class="${isMultiRow ? 'text-[9.5px]' : 'text-[11px]'} font-black text-amber-300 shrink-0">${goldenWarrantyPrice}</span>
+                                <div class="bg-gradient-to-r from-amber-950/40 to-slate-900 ${isMultiRow ? 'p-1.5 lg:px-1.5 lg:py-0.5 mb-1 lg:mb-0.5' : 'p-1.5 mb-1'} rounded-lg border border-amber-500/40 flex flex-wrap items-center justify-between gap-1">
+                                    <span class="${isMultiRow ? 'text-[9.5px] lg:text-[8.5px]' : 'text-[10px]'} text-amber-200 font-bold"><i class="fa-solid fa-crown text-amber-400 ml-1"></i> الضمان الذهبي 5 سنوات:</span>
+                                    <span class="${isMultiRow ? 'text-[10.5px] lg:text-[9.5px]' : 'text-[11px]'} font-black text-amber-300 shrink-0">${goldenWarrantyPrice}</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="${isMultiRow ? 'pt-1 mt-1' : 'pt-1.5 mt-1'} border-t border-slate-800 shrink-0">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-baseline gap-1.5">
+                        <div class="${isMultiRow ? 'pt-1.5 lg:pt-1 mt-1' : 'pt-1.5 mt-1'} border-t border-slate-800 shrink-0">
+                            <div class="flex flex-wrap items-center justify-between gap-1">
+                                <div class="flex items-baseline gap-1.5 flex-wrap">
                                     <div class="flex items-baseline gap-1">
                                         <span class="${priceSizeClass} font-black text-emerald-400 tracking-wider leading-none">${item.price || '--'}</span>
-                                        <span class="${isMultiRow ? 'text-[9px]' : 'text-xs'} font-bold text-emerald-400">ر.س</span>
+                                        <span class="${isMultiRow ? 'text-[10px] lg:text-[9px]' : 'text-xs'} font-bold text-emerald-400">ر.س</span>
                                     </div>
-                                    ${item.oldPrice ? `<span class="${isMultiRow ? 'text-[9px]' : 'text-xs'} text-slate-400 line-through font-medium">${item.oldPrice}</span>` : ''}
+                                    ${item.oldPrice ? `<span class="${isMultiRow ? 'text-[10px] lg:text-[9px]' : 'text-xs'} text-slate-400 line-through font-medium">${item.oldPrice}</span>` : ''}
                                 </div>
-                                <span class="${isMultiRow ? 'text-[8px] px-1.5 py-0.5' : 'text-[10px] px-2 py-0.5'} bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 rounded font-bold">متوفر</span>
+                                <span class="${isMultiRow ? 'text-[9px] lg:text-[8px] px-2 py-0.5 lg:px-1.5' : 'text-[10px] px-2 py-0.5'} bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 rounded font-bold shrink-0">متوفر</span>
                             </div>
                         </div>
                     </div>
