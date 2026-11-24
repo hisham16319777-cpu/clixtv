@@ -476,6 +476,70 @@
 
         function vlog(m) { try { if (window.clixLog) window.clixLog(m); } catch (e) {} }
 
+        // ===== Service Worker + Cache Storage: تشغيل الفيديو أوفلاين برابط عادي (بدون blob) =====
+        // مشغّل webOS يرفض blob: URL (err=4) فنخدم الفيديو المحفوظ عبر sw.js مع دعم Range
+        const SW_VIDEO_CACHE = 'clix-video-v1';
+        let swActive = false;
+        let swInitPromise = null;
+        let usingSwPlayback = false;
+        let swPlaybackDisabled = false;
+
+        function ensureSW() {
+            if (swInitPromise) return swInitPromise;
+            swInitPromise = (async () => {
+                try {
+                    if (!('serviceWorker' in navigator) || !window.caches || window.isSecureContext === false) return false;
+                    const existing = await navigator.serviceWorker.getRegistration('./');
+                    if (!existing) {
+                        await navigator.serviceWorker.register('./sw.js');
+                    } else {
+                        navigator.serviceWorker.register('./sw.js').catch(() => {});
+                    }
+                    await Promise.race([navigator.serviceWorker.ready, new Promise((r) => setTimeout(r, 4000))]);
+                    if (!navigator.serviceWorker.controller) {
+                        await new Promise((r) => {
+                            const t = setTimeout(r, 2500);
+                            navigator.serviceWorker.addEventListener('controllerchange', () => { clearTimeout(t); r(); }, { once: true });
+                        });
+                    }
+                    swActive = !!navigator.serviceWorker.controller;
+                    vlog(swActive ? 'Service Worker جاهز — الفيديو يعمل أوفلاين برابط عادي' : 'Service Worker غير مسيطر — سيتم استخدام Blob كاحتياط');
+                } catch (e) {
+                    swActive = false;
+                    vlog('تعذر تفعيل Service Worker: ' + ((e && e.message) || e));
+                }
+                return swActive;
+            })();
+            return swInitPromise;
+        }
+
+        async function swCachePut(url, blob) {
+            try {
+                if (!window.caches) return false;
+                const cache = await caches.open(SW_VIDEO_CACHE);
+                await cache.put(url, new Response(blob, {
+                    status: 200,
+                    headers: { 'Content-Type': 'video/mp4', 'Content-Length': String(blob.size) }
+                }));
+                return true;
+            } catch (e) {
+                vlog('تعذر الحفظ في Cache Storage: ' + ((e && e.message) || e));
+                return false;
+            }
+        }
+
+        async function swCacheHas(url) {
+            try {
+                if (!window.caches) return false;
+                const cache = await caches.open(SW_VIDEO_CACHE);
+                return !!(await cache.match(url, { ignoreSearch: true }));
+            } catch (e) { return false; }
+        }
+
+        async function swCacheClear() {
+            try { if (window.caches) await caches.delete(SW_VIDEO_CACHE); } catch (e) {}
+        }
+
         function updateOfflineVideoBanner(msg) {
             const el = document.getElementById('videoOfflineStatusBanner');
             if (el && msg) el.textContent = msg;
@@ -679,10 +743,13 @@
         }
 
         async function writeCachedVideoRecord(url, blob) {
-            return writeIdbRecord(VIDEO_CACHE_KEY, { url: url, blob: blob, savedAt: Date.now() });
+            const swSaved = await swCachePut(resolveVideoUrl(url), blob);
+            const idbSaved = await writeIdbRecord(VIDEO_CACHE_KEY, { url: url, blob: blob, savedAt: Date.now() });
+            return idbSaved || swSaved;
         }
 
         async function clearCachedVideoRecord() {
+            await swCacheClear();
             return deleteIdbRecord(VIDEO_CACHE_KEY);
         }
 
@@ -695,9 +762,33 @@
             return true;
         }
 
-        function playBlobOnVideo(videoEl, blob) {
+        async function playBlobOnVideo(videoEl, blob) {
             if (!videoEl || !isValidVideoBlob(blob)) return false;
             showVideoBackground();
+
+            // المسار المفضّل: رابط عادي يخدمه sw.js من Cache Storage (يعمل على webOS أوفلاين)
+            if (!swPlaybackDisabled && (await ensureSW())) {
+                try {
+                    const swUrl = resolveVideoUrl(currentVideoSourceUrl);
+                    if (!(await swCacheHas(swUrl))) await swCachePut(swUrl, blob);
+                    if (activeObjectUrl) {
+                        URL.revokeObjectURL(activeObjectUrl);
+                        activeObjectUrl = null;
+                    }
+                    usingLocalBlobNow = true;
+                    usingSwPlayback = true;
+                    videoEl.muted = !userWantsAudio;
+                    videoEl.src = swUrl;
+                    videoEl.load();
+                    videoEl.play().catch(() => {});
+                    return true;
+                } catch (e) {
+                    usingSwPlayback = false;
+                    vlog('تعذر التشغيل عبر Service Worker: ' + ((e && e.message) || e));
+                }
+            }
+
+            usingSwPlayback = false;
             try {
                 if (activeObjectUrl) {
                     URL.revokeObjectURL(activeObjectUrl);
@@ -787,7 +878,7 @@
                 vlog('تم اختيار وحفظ فيديو من الشاشة للعمل أوفلاين: ' + (file.name || 'فيديو'));
                 setActiveMediaInfoLabel('فيديو محلي: ' + (file.name || 'فيديو من الشاشة'));
                 updateOfflineVideoBanner('تم حفظ (' + (file.name || 'الفيديو المختار') + ') محلياً على الشاشة للعمل عند انقطاع الإنترنت.');
-                if (videoEl) playBlobOnVideo(videoEl, vidBlob);
+                if (videoEl) await playBlobOnVideo(videoEl, vidBlob);
             } else {
                 alert('يرجى اختيار ملف صورة أو فيديو صالح.');
             }
@@ -921,18 +1012,33 @@
             showVideoBackground();
             setActiveMediaInfoLabel(HOST_VIDEO_FILENAME);
 
+            await ensureSW();
+
             const cachedRecord = await readCachedVideoRecord();
             if (cachedRecord && isValidVideoBlob(cachedRecord.blob)) {
                 cachedBlobRef = cachedRecord.blob;
                 vlog('تشغيل الفيديو من الذاكرة المحلية (' + HOST_VIDEO_FILENAME + ' جاهز أوفلاين)');
                 updateOfflineVideoBanner('الفيديو (' + HOST_VIDEO_FILENAME + ') محفوظ محلياً ويعمل عند انقطاع الإنترنت.');
-                const playedLocal = playBlobOnVideo(videoEl, cachedBlobRef);
+                const playedLocal = await playBlobOnVideo(videoEl, cachedBlobRef);
                 if (playedLocal) {
                     if (navigator.onLine !== false && !forceReset) {
                         downloadAndSaveVideoForOffline(currentVideoSourceUrl);
                     }
                     return;
                 }
+            }
+
+            if (swActive && !swPlaybackDisabled && !forceReset && (await swCacheHas(currentVideoSourceUrl))) {
+                vlog('تشغيل الفيديو من Cache Storage عبر Service Worker (' + HOST_VIDEO_FILENAME + ' جاهز أوفلاين)');
+                updateOfflineVideoBanner('الفيديو (' + HOST_VIDEO_FILENAME + ') محفوظ محلياً ويعمل عند انقطاع الإنترنت.');
+                usingLocalBlobNow = true;
+                usingSwPlayback = true;
+                videoEl.muted = !userWantsAudio;
+                videoEl.src = currentVideoSourceUrl;
+                videoEl.load();
+                videoEl.play().catch(() => {});
+                if (navigator.onLine !== false) downloadAndSaveVideoForOffline(currentVideoSourceUrl);
+                return;
             }
 
             if (navigator.onLine !== false) {
@@ -971,6 +1077,16 @@
                 if (activeMediaKind !== 'video') return;
                 const code = videoEl.error ? videoEl.error.code : 'unknown';
                 vlog('خطأ مشغل الفيديو code=' + code + ' محلي=' + usingLocalBlobNow);
+
+                if (usingSwPlayback) {
+                    // فشل التشغيل عبر Service Worker: جرّب مسار Blob القديم مرة واحدة كاحتياط
+                    usingSwPlayback = false;
+                    swPlaybackDisabled = true;
+                    if (cachedBlobRef && isValidVideoBlob(cachedBlobRef)) {
+                        playBlobOnVideo(videoEl, cachedBlobRef);
+                        return;
+                    }
+                }
 
                 if (usingLocalBlobNow && navigator.onLine !== false) {
                     usingLocalBlobNow = false;
